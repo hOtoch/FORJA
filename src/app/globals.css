@@ -1,26 +1,657 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+ * Forja: tokens do DESIGN.md (seção 3). Claro por padrão; escuro pelo sistema
+ * operacional ou por [data-theme="dark"]. A barra da temporada é sempre escura.
+ */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+:root {
+  color-scheme: light;
+
+  --bg: #eae0ca; /* Pergaminho */
+  --surface: #f3ecdd; /* campos, diálogos */
+  --text: #2b241e; /* Tinta ferrosa */
+  --text-muted: #6b5a48; /* sépia */
+  --line: #cdbf9f;
+  --cta: #e8681e; /* Brasa */
+  --cta-hover: #d65a14;
+  --cta-text: #2b241e;
+  --focus: #2e4f9e; /* Azul heráldico */
+  --money: #7a5c14; /* Ouro velho */
+  --wax: #8e2a1c; /* Cera */
+  --track: #d8cbae;
+  --hover: rgba(43, 36, 30, 0.08);
+  --field-line: #6b5a48;
+
+  /* a barra é sempre escura, nos dois temas: ferro forjado */
+  --bar: #17130f;
+  --heat-future: #26211c;
+  --heat-future-line: #3a322a;
+  --heat-0: #47423d;
+  --heat-1: #a3311f;
+  --heat-2: #e8681e;
+  --heat-3: #f3b54a;
+  --heat-4: #fff0cc;
+  /* sobre o ferro escuro, o azul heráldico usa o tom claro para manter 3:1 */
+  --bar-blue: #7e9be0;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #1a1612; /* Fuligem */
+    --surface: #241e19;
+    --text: #ede3cf;
+    --text-muted: #b3a38a;
+    --line: #3d342b;
+    --focus: #7e9be0;
+    --money: #d4ac4f;
+    --track: #2e2721;
+    --bar: #0f0c0a;
+    --hover: rgba(237, 227, 207, 0.08);
+    --field-line: #b3a38a;
   }
 }
 
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #1a1612;
+  --surface: #241e19;
+  --text: #ede3cf;
+  --text-muted: #b3a38a;
+  --line: #3d342b;
+  --focus: #7e9be0;
+  --money: #d4ac4f;
+  --track: #2e2721;
+  --bar: #0f0c0a;
+  --hover: rgba(237, 227, 207, 0.08);
+  --field-line: #b3a38a;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-ink: var(--text);
+  --color-muted: var(--text-muted);
+  --color-line: var(--line);
+  --color-cta: var(--cta);
+  --color-cta-ink: var(--cta-text);
+  --color-focus: var(--focus);
+  --color-money: var(--money);
+  --color-wax: var(--wax);
+  --color-track: var(--track);
+  --color-bar: var(--bar);
+  --color-heat-future: var(--heat-future);
+  --color-heat-0: var(--heat-0);
+  --color-heat-1: var(--heat-1);
+  --color-heat-2: var(--heat-2);
+  --color-heat-3: var(--heat-3);
+  --color-heat-4: var(--heat-4);
+
+  --font-gothic: var(--font-grenze-gotisch), "Times New Roman", serif;
+  --font-roman: var(--font-grenze), Georgia, serif;
+  --font-sans: var(--font-alegreya-sans), "Segoe UI", system-ui, sans-serif;
+}
+
+@theme {
+  /* 1440 px: a faixa de baixo passa a ter 5 regiões */
+  --breakpoint-desk: 90rem;
+
+  /* escala tipográfica do DESIGN.md, seção 4 */
+  --text-display-xl: 4.5rem;
+  --text-display-xl--line-height: 4.5rem;
+  --text-display-l: 3.75rem;
+  --text-display-l--line-height: 3.75rem;
+  --text-display-m: 2.25rem;
+  --text-display-m--line-height: 2.5rem;
+  --text-title: 1.625rem;
+  --text-title--line-height: 1.875rem;
+  --text-lead: 1.125rem;
+  --text-lead--line-height: 1.6875rem;
+  --text-body: 1rem;
+  --text-body--line-height: 1.5rem;
+  --text-small: 0.875rem;
+  --text-small--line-height: 1.25rem;
+  --text-micro: 0.75rem;
+  --text-micro--line-height: 1rem;
+}
+
+/* ---------- base ---------- */
+
+html {
+  background-color: var(--bg);
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  position: relative;
+  isolation: isolate;
+  min-height: 100dvh;
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.5rem;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Textura de pergaminho: ruído de papel a 4%, só no fundo da página. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='280'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0.33 0.33 0.33 0 0 0.33 0.33 0.33 0 0 0.33 0.33 0.33 0 0 0 0 0 0 1'/%3E%3C/filter%3E%3Crect width='280' height='280' filter='url(%23p)'/%3E%3C/svg%3E");
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--heat-3);
+  color: #2b241e;
+}
+
+/* Algarismos alinhados e tabulares em tudo que muda. */
+.num {
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+/* ---------- componentes ---------- */
+
+@layer components {
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 6px;
+    font-family: var(--font-sans);
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 120ms ease;
+  }
+  .btn:active:not(:disabled):not([aria-disabled="true"]) {
+    transform: translateY(1px);
+  }
+  .btn:disabled,
+  .btn[aria-disabled="true"] {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  /* "Estudar agora": uma chapa quente */
+  .btn-primary {
+    height: 56px;
+    padding: 0 1.5rem;
+    background: var(--cta);
+    color: var(--cta-text);
+    border: 2px solid var(--cta-text);
+    font-size: 1.125rem;
+    line-height: 1.5rem;
+    font-weight: 700;
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: var(--cta-hover);
+  }
+
+  /* confirmações de diálogo: tinta ferrosa sólida */
+  .btn-ink {
+    height: 40px;
+    padding: 0 1.25rem;
+    background: var(--text);
+    color: var(--bg);
+    border: 1px solid var(--text);
+    font-weight: 700;
+  }
+  .btn-ink:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--text) 86%, var(--bg));
+  }
+
+  .btn-outline {
+    height: 40px;
+    padding: 0 1rem;
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--text);
+  }
+  .btn-outline:hover:not(:disabled):not([aria-disabled="true"]) {
+    background: var(--hover);
+  }
+
+  /* itens do menu e ações discretas */
+  .btn-quiet {
+    height: 36px;
+    padding: 0 0.625rem;
+    background: transparent;
+    color: var(--text);
+    border: 1px solid transparent;
+  }
+  .btn-quiet:hover:not(:disabled):not([aria-disabled="true"]) {
+    background: var(--hover);
+  }
+
+  .link {
+    color: var(--focus);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+    cursor: pointer;
+    border-radius: 2px;
+  }
+  .link:hover {
+    text-decoration-thickness: 2px;
+  }
+
+  .field {
+    height: 40px;
+    width: 100%;
+    padding: 0 0.75rem;
+    border-radius: 6px;
+    border: 1px solid var(--field-line);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 1rem;
+  }
+  .field:focus-visible {
+    outline-offset: 1px;
+  }
+
+  .choice {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 36px;
+    padding: 0 0.75rem;
+    border-radius: 6px;
+    border: 1px solid var(--field-line);
+    cursor: pointer;
+  }
+  .choice:has(input:checked) {
+    background: var(--text);
+    color: var(--bg);
+    border-color: var(--text);
+  }
+  .choice:has(input:focus-visible) {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+  .choice input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* trilhos de medidores (XP, atributos, cursos, Fundo) */
+  .rail {
+    position: relative;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--track);
+    overflow: hidden;
+  }
+  .rail > span {
+    position: absolute;
+    inset: 0 auto 0 0;
+    border-radius: 3px;
+    background: var(--text);
+  }
+  .rail-thin {
+    height: 4px;
+  }
+
+  /* faixa dentro de uma região (presença do timer, avisos) */
+  .band {
+    border-left: 3px solid var(--text);
+    background: var(--surface);
+    border-radius: 0 6px 6px 0;
+    padding: 0.75rem 1rem;
+  }
+}
+
+/* ---------- diálogos e gaveta ---------- */
+
+.forja-dialog {
+  margin: auto;
+  width: min(480px, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  overflow: auto;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  padding: 0;
+  box-shadow: 0 16px 48px rgba(16, 22, 28, 0.28);
+}
+.forja-dialog::backdrop {
+  background: rgba(26, 22, 18, 0.45);
+}
+
+.forja-drawer {
+  margin: 0 0 0 auto;
+  width: min(440px, 100vw);
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: auto;
+  border: 0;
+  border-left: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--surface);
+  color: var(--text);
+  padding: 0;
+  box-shadow: 0 16px 48px rgba(16, 22, 28, 0.28);
+}
+.forja-drawer::backdrop {
+  background: rgba(26, 22, 18, 0.35);
+}
+.forja-drawer[open] {
+  animation: forja-drawer-in 200ms ease-out;
+}
+@keyframes forja-drawer-in {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+}
+
+/* ---------- a barra da temporada ---------- */
+
+.forja-bar-wrap {
+  position: relative;
+  padding-top: 1.5rem; /* "hoje" e as dicas */
+  padding-bottom: 3.25rem; /* meses, metade, fim e a semana atual */
+}
+
+.forja-bar {
+  display: flex;
+  gap: 10px; /* 2 px entre dias + 8 px a mais a cada segunda */
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--bar);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 1px 0 rgba(0, 0, 0, 0.35);
+}
+
+.forja-week {
+  position: relative;
+  display: flex;
+  gap: 2px;
+  min-width: 0;
+}
+
+.forja-cell {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.forja-seg {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 64px;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background-color: var(--seg, var(--heat-future));
+  cursor: pointer;
+  transition: background-color 300ms ease;
+}
+.forja-seg[data-heat="future"] {
+  --seg: var(--heat-future);
+  box-shadow: inset 0 0 0 1px var(--heat-future-line);
+}
+.forja-seg[data-heat="0"] {
+  --seg: var(--heat-0);
+}
+.forja-seg[data-heat="1"] {
+  --seg: var(--heat-1);
+}
+.forja-seg[data-heat="2"] {
+  --seg: var(--heat-2);
+}
+.forja-seg[data-heat="3"] {
+  --seg: var(--heat-3);
+}
+.forja-seg[data-heat="4"] {
+  --seg: var(--heat-4);
+}
+/* folga: listras diagonais de ferro frio sobre o ferro por forjar */
+.forja-seg[data-break] {
+  background-color: var(--heat-future);
+  background-image: repeating-linear-gradient(
+    135deg,
+    var(--heat-0) 0 3px,
+    var(--heat-future) 3px 7px
+  );
+  box-shadow: none;
+}
+/* dia salvo por escudo: faixa azul de 3 px no topo */
+.forja-seg[data-shield]::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 2px 2px 0 0;
+  background: var(--bar-blue);
+}
+/* hoje: contorno incandescente de 2 px, afastado 2 px */
+.forja-seg[data-today]::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border: 2px solid var(--heat-4);
+  border-radius: 4px;
+  pointer-events: none;
+}
+.forja-seg:hover {
+  box-shadow: inset 0 0 0 1px rgba(255, 240, 204, 0.45);
+}
+.forja-seg:focus-visible {
+  outline: 2px solid var(--bar-blue);
+  outline-offset: 2px;
+  z-index: 2;
+}
+.forja-seg[data-today]:focus-visible {
+  outline-offset: 5px;
+}
+
+.forja-label {
+  position: absolute;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.forja-label-top {
+  bottom: calc(100% + 14px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+.forja-label-bottom {
+  top: calc(100% + 14px);
+  left: 0;
+}
+.forja-label-end {
+  left: auto;
+  right: 0;
+}
+.forja-week-label {
+  position: absolute;
+  top: calc(100% + 36px);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.forja-tip {
+  position: absolute;
+  bottom: calc(100% + 16px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  visibility: hidden;
+}
+.forja-tip[data-align="start"] {
+  left: -2px;
+  transform: none;
+}
+.forja-tip[data-align="end"] {
+  left: auto;
+  right: -2px;
+  transform: none;
+}
+.forja-cell:hover .forja-tip,
+.forja-seg:focus-visible + .forja-tip {
+  visibility: visible;
+}
+
+/* celular: quatro linhas de 20 dias */
+@media (max-width: 767px) {
+  .forja-bar-wrap {
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  .forja-bar {
+    display: grid;
+    grid-template-columns: repeat(20, minmax(0, 1fr));
+    gap: 4px 3px;
+    padding: 10px;
+  }
+  .forja-week {
+    display: contents;
+  }
+  .forja-seg {
+    height: 28px;
+  }
+  .forja-label,
+  .forja-week-label,
+  .forja-tip {
+    display: none;
+  }
+}
+
+/* barra pequena e estática da tela de entrar */
+.forja-mini-bar {
+  display: flex;
+  gap: 2px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--bar);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 1px 0 rgba(0, 0, 0, 0.35);
+}
+.forja-mini-bar > span {
+  flex: 1 1 0;
+  height: 20px;
+  border-radius: 2px;
+}
+.forja-mini-bar > span[data-gap] {
+  margin-left: 6px;
+}
+
+/* ---------- movimento (DESIGN.md, seção 7) ---------- */
+
+/* 1. aquecimento da barra na primeira abertura do dia */
+@keyframes forja-warm {
+  from {
+    background-color: var(--heat-0);
+  }
+}
+@keyframes forja-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.2;
+  }
+}
+.forja-bar.is-warming .forja-seg[data-warm] {
+  animation: forja-warm 240ms ease-out both;
+  animation-delay: calc(var(--i) * 8ms);
+}
+.forja-bar.is-warming .forja-seg[data-today]::after {
+  animation: forja-pulse 360ms ease-in-out 2;
+  animation-delay: 900ms;
+}
+
+/* 2. martelada no segmento de hoje quando o calor muda */
+@keyframes forja-hammer {
+  0% {
+    transform: translateY(0);
+  }
+  45% {
+    transform: translateY(2px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+.forja-seg.is-hit {
+  animation: forja-hammer 160ms ease-out;
+}
+
+/* 3. faíscas: só ao bater a meta ou derrotar o chefe */
+.forja-sparks {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 6;
+}
+.forja-sparks > span {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--heat-3);
+  opacity: 0;
+  animation: forja-spark 500ms ease-out forwards;
+}
+.forja-sparks > span:nth-child(even) {
+  background: var(--heat-4);
+}
+@keyframes forja-spark {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy));
+  }
+}
+
+/* 5. movimento reduzido: nada se move, as cores mudam direto */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .forja-sparks {
+    display: none;
+  }
 }
