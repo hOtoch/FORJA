@@ -20,10 +20,10 @@ Projeto Next.js único na raiz: `src/app`, `src/components`, `src/lib`, `src/con
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-- [ ] T001 Criar o app Next.js na raiz com `create-next-app` (TypeScript, Tailwind, ESLint, App Router, pasta `src/`, alias `@/*`), preservando `docs/`, `specs/`, `.specify/`, `.claude/`, `DESIGN.md` e `.gitignore`
-- [ ] T002 Adicionar `@neondatabase/serverless` às dependências e `vitest` às de desenvolvimento, com os scripts `"test": "vitest run"` e `"db:setup": "node scripts/db-setup.mjs"` em package.json
-- [ ] T003 [P] Criar .env.example com `FORJA_PASSWORD`, `FORJA_SECRET`, `FORJA_STATUS_TOKEN`, `DATABASE_URL` (opcional; vazio = arquivo local) e `FORJA_NOW` (opcional, só em desenvolvimento), e adicionar `.data/` ao .gitignore
-- [ ] T004 [P] Copiar docs/courses.json para src/config/courses.json
+- [X] T001 Criar o app Next.js na raiz com `create-next-app` (TypeScript, Tailwind, ESLint, App Router, pasta `src/`, alias `@/*`), preservando `docs/`, `specs/`, `.specify/`, `.claude/`, `DESIGN.md` e `.gitignore`
+- [X] T002 Adicionar `@neondatabase/serverless` às dependências e `vitest` às de desenvolvimento, com os scripts `"test": "vitest run"` e `"db:setup": "node scripts/db-setup.mjs"` em package.json
+- [X] T003 [P] Criar .env.example com `FORJA_PASSWORD`, `FORJA_SECRET`, `FORJA_STATUS_TOKEN`, `DATABASE_URL` (opcional; vazio = arquivo local) e `FORJA_NOW` (opcional, só em desenvolvimento), e adicionar `.data/` ao .gitignore
+- [X] T004 [P] Copiar docs/courses.json para src/config/courses.json
 
 ---
 
@@ -31,19 +31,19 @@ Projeto Next.js único na raiz: `src/app`, `src/components`, `src/lib`, `src/con
 
 **⚠️ CRITICAL**: nenhuma user story começa antes desta fase.
 
-- [ ] T005 Escrever todos os tipos de data-model.md (`ForjaRecord` e variantes, `TimerState`, `SeasonConfig`, `DayInfo`, `WeekInfo`, `GameState`, `Heat`, `ActionResult`) em src/lib/types.ts
-- [ ] T006 Escrever a configuração da Temporada 1 conforme data-model.md em src/config/season1.ts, incluindo:
+- [X] T005 Escrever todos os tipos de data-model.md (`ForjaRecord` e variantes, `TimerState`, `SeasonConfig`, `DayInfo`, `WeekInfo`, `GameState`, `Heat`, `ActionResult`) em src/lib/types.ts
+- [X] T006 Escrever a configuração da Temporada 1 conforme data-model.md em src/config/season1.ts, incluindo:
   - `plannedBreaks` "2026-10-10" a "2026-10-13";
   - `initialCompleted` do primeiro curso: `[1037,975,976,977,978,979,986,987,984,985,990]`;
   - `lessonUrl` = `https://plataforma.pythonando.com.br/membros/curso/${slug}?atual_aula_curso=${id}`;
   - os 5 baús, os títulos e `levelXp(n) = 50*n*(n+1)`.
-- [ ] T007 Implementar em src/lib/time.ts:
+- [X] T007 Implementar em src/lib/time.ts:
   - `gameDay(instant)`: data em America/Sao_Paulo de instante − 4h, via `Intl.DateTimeFormat`;
   - `addDays`, `weekdayOf` (1=seg … 7=dom), `daysBetween`;
   - `seasonDays(config)`: os 80 dias;
   - `seasonWeeks(config)`: as 12 semanas, a 12ª de 21 a 23/12;
   - `now()`: usa `FORJA_NOW` se definido e `NODE_ENV !== 'production'`.
-- [ ] T008 [P] Testar src/lib/time.ts em src/lib/time.test.ts:
+- [X] T008 [P] Testar src/lib/time.ts em src/lib/time.test.ts:
   - 2026-10-06T03:59-03:00 é o dia 2026-10-05;
   - 80 dias e 12 semanas;
   - a semana 1 é de 05/10 a 11/10.
