@@ -2,19 +2,25 @@
 
 Sistema visual do Forja. Escrito com a skill `frontend-design`, antes de qualquer tela existir. Vale para o protótipo e para o app. Quando um componente novo surgir, ele segue estas regras ou este documento muda primeiro.
 
+> **Revisão de 03/10/2026:** o usuário pediu ambientação de **forja medieval de RPG**. A estrutura continua a mesma: a barra de 80 dias, a escala de calor e a marca do ferreiro. Mudaram as fontes, os fundos (pergaminho e fuligem), o azul (agora heráldico) e alguns ícones.
+
 ---
 
 ## 1. Assunto, público e função
 
-- **Assunto:** uma forja. Você aquece e martela o mesmo metal todo dia até ele virar uma peça. Cada dia de estudo e treino é uma martelada na barra da temporada.
+- **Assunto:** a forja de um ferreiro medieval, num mundo de RPG. Você aquece e martela o mesmo metal todo dia até ele virar uma peça. Cada dia de estudo e treino é uma martelada na barra da temporada. O painel é o livro de registros da oficina, escrito em pergaminho.
 - **Público:** uma pessoa só, desenvolvedor e freelancer, que abre o app todo dia no Chrome de um PC com tela de 1920 × 1080 e Windows no tema claro.
 - **Função principal:** em cinco segundos, mostrar o que falta hoje e como vai a temporada, e levar ao clique em "Estudar agora".
 
-O vocabulário visual sai do ofício do ferreiro: o metal frio, a escala de cores do metal aquecido, o azul que o aço ganha ao ser temperado, o latão das moedas e a marca que o ferreiro punciona na peça pronta.
+O vocabulário visual sai do ofício do ferreiro medieval:
+- o ferro frio e a escala de cores do metal aquecido;
+- o pergaminho e a tinta ferrosa dos registros;
+- o azul dos brasões, os baús com cintas de ferro e o ouro das moedas;
+- o selo de cera e a marca que o ferreiro punciona na peça pronta.
 
 ## 2. Princípios
 
-1. **A barra é a tela.** A temporada é uma barra de ferro com 80 segmentos, um por dia. É o único objeto escuro e com material numa página clara e quieta. Toda a ousadia do design fica nela.
+1. **A barra é a tela.** A temporada é uma barra de ferro forjado com 80 segmentos, um por dia. É o único objeto escuro e com material sobre o pergaminho. Toda a ousadia do design fica nela; a ambientação medieval está na tipografia e nos ícones, não em molduras e ornamentos.
 2. **Calor é informação.** As cores do metal aquecido marcam trabalho feito e nunca servem de enfeite. Laranja quer dizer "você esquentou o metal", não "cor da marca".
 3. **Metal frio, não vergonha.** Um dia sem estudo aparece como ferro frio, cinza e sem brilho. Não há vermelho de erro, alerta ou culpa.
 4. **Uma próxima ação, dita em palavras simples.** A página sempre deixa claro o próximo passo: "Estudar agora", "Marcar treino".
@@ -26,12 +32,13 @@ O vocabulário visual sai do ofício do ferreiro: o metal frio, a escala de core
 
 | Nome | Hex | Papel |
 |---|---|---|
-| Aço | `#1D242B` | Texto no tema claro, fundo no escuro e o metal da barra |
-| Zinco | `#ECEFF2` | Fundo no tema claro, texto no escuro |
-| Ferro frio | `#6B7782` | Dias sem estudo, ícones inativos. Não serve para texto pequeno no tema claro |
+| Tinta ferrosa | `#2B241E` | Texto no tema claro e o contorno do botão principal. É a tinta dos manuscritos medievais |
+| Pergaminho | `#EAE0CA` | Fundo no tema claro. Mais amarelado e escuro que o creme genérico, com textura de papel a 4% |
+| Fuligem | `#1A1612` | Fundo no tema escuro |
 | Brasa | `#E8681E` | Calor e a ação principal ("Estudar agora") |
-| Latão | `#7A5C14` | Dinheiro: o Fundo Réveillon e os depósitos |
-| Revenido | `#2F5FB8` | Foco do teclado, links e escudos. É o azul de revenimento, a cor que o aço ganha ao ser temperado |
+| Ouro velho | `#7A5C14` | Dinheiro: o Fundo Réveillon e os depósitos (`#D4AC4F` no escuro) |
+| Azul heráldico | `#2E4F9E` | Foco do teclado, links e escudos (os brasões). `#7E9BE0` no escuro |
+| Cera | `#8E2A1C` | Só o selo de cera de "Depósito confirmado" |
 
 ### Escala de calor (só na barra e no progresso de hoje)
 
@@ -39,8 +46,8 @@ A escala segue as cores reais do metal aquecido. A luminância sobe de forma con
 
 | Nível | Nome | Hex | Quando aparece |
 |---|---|---|---|
-| — | Por forjar | `#232A31` com contorno `#333C45` | Dia futuro |
-| 0 | Ferro frio | `#3B4550` | Dia que passou sem a meta de estudo |
+| — | Por forjar | `#26211C` com contorno `#3A322A` | Dia futuro |
+| 0 | Ferro frio | `#47423D` | Dia que passou sem a meta de estudo |
 | 1 | Cereja | `#A3311F` | Estudou, mas menos de 60 min |
 | 2 | Brasa | `#E8681E` | Meta de estudo cumprida |
 | 3 | Palha | `#F3B54A` | Meta de estudo e mais 1 ponto de calor |
@@ -49,29 +56,30 @@ A escala segue as cores reais do metal aquecido. A luminância sobe de forma con
 **Pontos de calor do dia:** 120 min de estudo valem 1 ponto, um treino vale 1 e um cardio vale 1.
 
 **Marcas especiais nos segmentos:**
-- **Folga:** listras diagonais em `#3B4550` sobre `#232A31`.
-- **Dia salvo por escudo:** ferro frio, com uma faixa de 3 px em Revenido no topo.
+- **Folga:** listras diagonais em `#47423D` sobre `#26211C`.
+- **Dia salvo por escudo:** ferro frio, com uma faixa de 3 px em azul heráldico no topo.
 
 ### Tokens
 
 ```css
 :root {
-  --bg: #ECEFF2;            /* Zinco */
-  --surface: #F7F8FA;       /* campos, diálogos */
-  --text: #1D242B;          /* Aço */
-  --text-muted: #56616C;    /* 5,5:1 sobre o fundo */
-  --line: #C9D0D6;          /* só onde a linha separa dados */
+  --bg: #EAE0CA;            /* Pergaminho */
+  --surface: #F3ECDD;       /* campos, diálogos */
+  --text: #2B241E;          /* Tinta ferrosa, 11,7:1 */
+  --text-muted: #6B5A48;    /* sépia, 5,0:1 sobre o fundo */
+  --line: #CDBF9F;          /* só onde a linha separa dados */
   --cta: #E8681E;           /* Brasa */
-  --cta-text: #1D242B;      /* 4,8:1 sobre a Brasa */
-  --focus: #2F5FB8;         /* Revenido, 5,3:1 */
-  --money: #7A5C14;         /* Latão, 5,4:1 */
-  --track: #D5DBE0;         /* trilhos de medidores */
+  --cta-text: #2B241E;      /* 4,7:1 sobre a Brasa */
+  --focus: #2E4F9E;         /* Azul heráldico, 5,9:1 */
+  --money: #7A5C14;         /* Ouro velho, 4,8:1 */
+  --wax: #8E2A1C;           /* Cera */
+  --track: #D8CBAE;         /* trilhos de medidores */
 
-  /* a barra é sempre escura, nos dois temas */
-  --bar: #151A1F;
-  --heat-future: #232A31;
-  --heat-future-line: #333C45;
-  --heat-0: #3B4550;
+  /* a barra é sempre escura, nos dois temas: ferro forjado */
+  --bar: #17130F;
+  --heat-future: #26211C;
+  --heat-future-line: #3A322A;
+  --heat-0: #47423D;
   --heat-1: #A3311F;
   --heat-2: #E8681E;
   --heat-3: #F3B54A;
@@ -80,15 +88,15 @@ A escala segue as cores reais do metal aquecido. A luminância sobe de forma con
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #1B2128;
-    --surface: #232A32;
-    --text: #E3E8EC;
-    --text-muted: #9AA6B1;   /* 6,5:1 */
-    --line: #3A444F;
-    --focus: #7FA6EE;        /* 6,4:1 */
+    --bg: #1A1612;           /* Fuligem */
+    --surface: #241E19;
+    --text: #EDE3CF;
+    --text-muted: #B3A38A;   /* 7,3:1 */
+    --line: #3D342B;
+    --focus: #7E9BE0;        /* 6,6:1 */
     --money: #D4AC4F;        /* 7,4:1 */
-    --track: #2C343C;
-    --bar: #11161A;
+    --track: #2E2721;
+    --bar: #0F0C0A;
   }
 }
 
@@ -100,39 +108,42 @@ O tema segue o Windows por padrão. Hoje o Windows está no tema claro, então e
 ### Regras de uso
 
 - **Brasa:** só para calor (barra, progresso de hoje) e para o botão "Estudar agora". Nunca como cor de texto no tema claro, porque o contraste não basta.
-- **Latão:** só para dinheiro.
-- **Revenido:** só para foco, links e escudos.
-- **Todo o resto:** Aço e Zinco, com o tom secundário.
+- **Ouro velho:** só para dinheiro.
+- **Azul heráldico:** só para foco, links e escudos.
+- **Cera:** só para o selo de depósito.
+- **Todo o resto:** tinta ferrosa sobre pergaminho, com o tom sépia como secundário.
 - **Nenhum degradê** em lugar nenhum.
+- **Textura:** o pergaminho pode ter um ruído de papel (SVG `feTurbulence`) a 4% de opacidade, só no fundo da página. Nunca em textos ou controles.
 
 ## 4. Tipografia
 
 | Família | Papel | Por quê |
 |---|---|---|
-| **Big Shoulders Display** | Números grandes, títulos de região, a marca da nota, o nome Forja | Grotesca condensada nascida da sinalização industrial de Chicago. Tem cara de oficina e de placa de metal, com algarismos altos que funcionam no timer |
-| **Barlow** | Todo o texto e a interface | Grotesca de sinalização rodoviária, levemente arredondada, muito legível em português. É bem mais larga que a Big Shoulders, então as duas não se confundem |
+| **Grenze Gotisch** | O nome Forja, os títulos de região e a letra da nota | Gótica (blackletter) desenhada para ser legível em tela. Dá o tom medieval na hora, sem a ilegibilidade das fraktur tradicionais |
+| **Grenze** | Números grandes: timer, nível, valor do Fundo | A versão romana da mesma família. Algarismos firmes, que conversam com a gótica sem competir com ela |
+| **Alegreya Sans** | Todo o texto e a interface | Sem serifa de raiz caligráfica, com um toque de manuscrito, muito legível em português. Contrasta com a gótica sem destoar |
 
 **Escala** (a escala clássica de *The Elements of Typographic Style*):
 
 | Token | Tamanho / entrelinha | Fonte | Uso |
 |---|---|---|---|
-| `display-xl` | 72 / 72 | Big Shoulders 800 | O tempo do timer; o nome Forja na tela de entrar |
-| `display-l` | 60 / 60 | Big Shoulders 800 | A letra da nota |
-| `display-m` | 36 / 40 | Big Shoulders 700 | Nível, valor do Fundo |
-| `title` | 24 / 28 | Big Shoulders 700 | Títulos de região: "Hoje", "Chefe da semana 2" |
-| `lead` | 18 / 27 | Barlow 500 | A frase de status do dia |
-| `body` | 16 / 24 | Barlow 400 | Texto corrido e listas |
-| `small` | 14 / 20 | Barlow 500 | Rótulos, legendas da barra |
-| `micro` | 12 / 16 | Barlow 500 | Só os meses embaixo da barra |
+| `display-xl` | 72 / 72 | Grenze 800 (timer) / Grenze Gotisch 800 (o nome Forja) | O tempo do timer; o nome na tela de entrar |
+| `display-l` | 60 / 60 | Grenze Gotisch 800 | A letra da nota |
+| `display-m` | 36 / 40 | Grenze 700 | Nível, valor do Fundo |
+| `title` | 26 / 30 | Grenze Gotisch 700 | Títulos de região: "Hoje", "Chefe da semana 2" |
+| `lead` | 18 / 27 | Alegreya Sans 500 | A frase de status do dia |
+| `body` | 16 / 24 | Alegreya Sans 400 | Texto corrido e listas |
+| `small` | 14 / 20 | Alegreya Sans 500 | Rótulos, legendas da barra |
+| `micro` | 12 / 16 | Alegreya Sans 500 | Só os meses embaixo da barra |
 
 **Regras de texto**
 - Sempre em caixa normal de frase: nada de rótulo em maiúsculas.
 - Nada de rótulo pequeno em cima de título.
 - Nada de destacar uma palavra só dentro de um título.
-- Algarismos tabulares (`font-variant-numeric: tabular-nums`) em tudo que muda: timer, minutos, R$, XP.
-  - Confirmar na implementação se a Big Shoulders tem `tnum`. Se não tiver, o timer usa um `span` de largura fixa por dígito.
+- Algarismos alinhados e tabulares (`font-variant-numeric: lining-nums tabular-nums`) em tudo que muda: timer, minutos, R$, XP. Se a fonte não tiver `tnum`, o timer usa um `span` de largura fixa por dígito.
+- A gótica é só para títulos curtos (até umas 5 palavras). Frases e números pequenos ficam sempre na Alegreya Sans.
 - Linha de texto corrido com no máximo 72 caracteres.
-- Carregar com `next/font/google`: Big Shoulders Display (600, 700, 800) e Barlow (400, 500, 600).
+- Carregar com `next/font/google`: Grenze Gotisch (700, 800), Grenze (700, 800) e Alegreya Sans (400, 500, 700). As três foram confirmadas no Google Fonts.
 
 ## 5. Layout
 
@@ -202,8 +213,8 @@ O tema segue o Windows por padrão. Hoje o Windows está no tema claro, então e
   - "Meta de hoje cumprida. Cada minuto a mais vale XP até 2h."
   - "Ontem ficou sem estudo. Se hoje também ficar, a sequência quebra."
 - **Trilho de minutos:** 12 marcas de 10 min. Até 60, preenchem em Brasa; de 60 a 120, em Palha. Um traço na marca de 60 com a palavra "meta". Ao lado, "35 de 60 min".
-- **"Estudar agora":** botão principal, 56 px de altura, fundo Brasa, texto Aço em Barlow 600 de 18 px. Ao lado, "Próxima aula: Techspec e PRD (5 min)".
-- **Ações secundárias:** "Marcar treino" e "Marcar cardio", botões com contorno de 1 px em Aço e fundo transparente.
+- **"Estudar agora":** botão principal, 56 px de altura, fundo Brasa, borda de 2 px em tinta ferrosa (como uma chapa quente), texto em tinta ferrosa, Alegreya Sans 700 de 18 px. Ao lado, "Próxima aula: Techspec e PRD (5 min)".
+- **Ações secundárias:** "Marcar treino" e "Marcar cardio", botões com contorno de 1 px em tinta ferrosa e fundo transparente.
   - "Marcar cardio" abre um painel pequeno com a modalidade e os minutos. O app decide sozinho se é supercardio e diz isso antes de salvar ("Isto conta como supercardio").
 
 ### Timer (ocupa o lugar de "Hoje" enquanto roda)
@@ -223,9 +234,9 @@ O tema segue o Windows por padrão. Hoje o Windows está no tema claro, então e
 
 ### Personagem
 - "Nível 4" em `display-m`, com o título "Malhador" ao lado em `lead`.
-- **XP:** "1.240 de 1.500 XP" e um trilho fino de 6 px, preenchido em Aço.
+- **XP:** "1.240 de 1.500 XP" e um trilho fino de 6 px, preenchido em tinta ferrosa.
 - **Atributos:** Inteligência, Força e Vigor, com nome, número e um trilho monocromático cada. Sem uma cor por atributo: a cor fica reservada ao calor, ao dinheiro e à proteção.
-- **Escudos:** dois ícones de escudo, cheio em Revenido quando disponível e vazio quando não. Ao lado, "1 de 2".
+- **Escudos:** dois brasões (escudo heráldico), cheios em azul heráldico quando disponíveis e só em contorno quando não. Ao lado, "1 de 2".
 
 ### Nota prevista: a marca do ferreiro
 - A letra em `display-l`, dentro de um quadro de 88 × 88 px, como a marca que o ferreiro punciona na peça pronta.
@@ -234,20 +245,20 @@ O tema segue o Windows por padrão. Hoje o Windows está no tema claro, então e
 - **Embaixo:** "Estudo 92%", "Academia 88%" e "Cardio 84%", com os números alinhados à direita.
 
 ### Fundo Réveillon
-- **Valor:** "R$ 210" em `display-m`, na cor Latão, e "de R$ 1.500" em `body`, tom secundário.
-- **Medidor:** trilho com preenchimento em Latão.
-- **Depósito pendente:** "Depositar R$ 130 da semana 2", com o botão de contorno "Marcar como depositado". A confirmação diz "Depósito confirmado".
+- **Valor:** "R$ 210" em `display-m`, na cor ouro velho, e "de R$ 1.500" em `body`, tom secundário.
+- **Medidor:** trilho com preenchimento em ouro velho.
+- **Depósito pendente:** "Depositar R$ 130 da semana 2", com o botão de contorno "Marcar como depositado". A confirmação diz "Depósito confirmado", e a semana ganha um pequeno selo de cera (a cor Cera) na lista de depósitos.
 - **Cliente:** o link "Registrar cliente fechado" abre um campo para o valor do contrato e mostra o bônus antes de salvar.
 
 ### Cursos
-- **Lista:** a fila na ordem, com o curso atual em Barlow 600 e os outros em 400. Cada curso tem um trilho de progresso em Aço e a data "até 20/10".
+- **Lista:** a fila na ordem, com o curso atual em Alegreya Sans 700 e os outros em 400. Cada curso tem um trilho de progresso em tinta ferrosa e a data "até 20/10".
 - **Curso atual:** mostra também o módulo e a próxima aula.
 - **Detalhe:** o link "Ver cursos" abre o mapa completo, com módulos numerados (eles são uma sequência), aulas, o que falta e a previsão.
 
 ### Baús
 - **Linhas:** cinco, cada uma com o ícone, a condição e o prêmio, sempre visíveis.
-- **Trancado:** ícone em contorno, tom secundário.
-- **Aberto:** ícone preenchido em Palha e a frase "Aberto em 11/10".
+- **Trancado:** baú com cintas de ferro e cadeado, em contorno, tom secundário.
+- **Aberto:** tampa levantada, interior em Palha, e a frase "Aberto em 11/10".
 
 ### Gaveta do dia
 - Abre pela direita ao clicar num segmento.
@@ -265,7 +276,7 @@ O tema segue o Windows por padrão. Hoje o Windows está no tema claro, então e
 - Erro: "Senha incorreta. Confira e tente de novo."
 
 ### Ícones
-- Desenhados para o Forja, em traço de 1,5 px: escudo, baú, bigorna, chama.
+- Desenhados para o Forja, em traço de 1,5 px, com silhueta medieval: brasão (escudo heráldico em forma de amêndoa), baú com cintas de ferro, bigorna, martelo, chama e selo de cera.
 - Nada de emoji.
 - Um ícone só aparece onde ajuda a reconhecer algo mais rápido. Nunca enfeita um título.
 
@@ -309,7 +320,7 @@ Um único momento orquestrado, e o resto só responde ao que você faz.
 ## 9. Acessibilidade (o mínimo, sempre)
 
 - Contraste AA em todo texto (as razões estão nos tokens). Componentes e ícones com pelo menos 3:1.
-- Foco visível em tudo: contorno de 2 px em Revenido, afastado 2 px.
+- Foco visível em tudo: contorno de 2 px em azul heráldico, afastado 2 px.
 - A escala de calor nunca depende só da cor:
   - a luminância sobe de forma contínua;
   - a folga tem listras e o escudo tem faixa;
@@ -328,12 +339,12 @@ Depois do primeiro plano, comparei cada escolha com o que sairia para qualquer a
 | Blocos de número grande com rótulo pequeno (nível, XP, R$) | Bloco de estatística padrão de painel | Os números aparecem em frases ("R$ 210 de R$ 1.500"). O único número que é desenho é a letra da nota, como marca de ferreiro |
 | Uma cor por atributo (azul, vermelho, verde) | Arco-íris de painel de jogo, que dilui o significado das cores | Atributos em uma cor só. Cor fica para calor, dinheiro e proteção |
 | Cartões arredondados com sombra para cada bloco | Kit de cartões de SaaS | Sem caixas. As regiões se separam por espaço; só a barra, a marca e o timer têm material |
-| Fonte medieval de RPG (tipo Cinzel) | Clichê de fantasia, e o assunto é oficina, não castelo | Big Shoulders, de origem industrial |
+| Grotesca industrial (Big Shoulders) e fundo de zinco | O usuário pediu ambientação medieval de RPG; o pedido do cliente vence | Grenze Gotisch nos títulos, pergaminho e fuligem nos fundos. Evitei a Cinzel e a MedievalSharp, que são o clichê medieval mais batido, e as fraktur ilegíveis |
 | Confete e troféu ao bater meta | Celebração genérica | Faíscas pequenas, só nos dois momentos que importam |
 
 ## 11. Para quem for implementar (inclusive agentes do spec-kit)
 
-- Leia a seção 2 antes de criar qualquer tela. Se um componente novo precisar de cor, ela vem dos papéis da seção 3; se nenhum servir, a cor é Aço ou Zinco.
+- Leia a seção 2 antes de criar qualquer tela. Se um componente novo precisar de cor, ela vem dos papéis da seção 3; se nenhum servir, a cor é tinta ferrosa ou pergaminho.
 - Não crie cartões, sombras ou degradês para separar regiões. Use espaço.
 - Toda cópia de interface segue a seção 8. Na dúvida, escreva o que o botão faz.
 - Antes de dar uma tela por pronta:
