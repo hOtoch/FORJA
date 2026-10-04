@@ -1,9 +1,8 @@
 // Fila de cursos: o atual em destaque, com módulo e próxima aula; previsão de término.
 
 import Link from 'next/link';
-import { shortDate } from '@/lib/time';
 import type { GameState } from '@/lib/types';
-import { lessonName } from './format';
+import { lessonName, projDate } from './format';
 import { MedalIcon } from './icons';
 
 export function CoursesPanel({ state }: { state: GameState }) {
@@ -43,7 +42,7 @@ export function CoursesPanel({ state }: { state: GameState }) {
                   <span style={{ width: `${pct}%` }} />
                 </div>
                 <span className="shrink-0 text-small font-medium num">
-                  {c.completed ? 'concluído' : c.projectedEnd ? `até ${shortDate(c.projectedEnd)}` : 'sem previsão'}
+                  {c.completed ? 'concluído' : c.projectedEnd ? `até ${projDate(c.projectedEnd)}` : 'sem previsão'}
                 </span>
               </div>
               <p className="sr-only">
@@ -55,7 +54,7 @@ export function CoursesPanel({ state }: { state: GameState }) {
       </ol>
       <p className="mt-3 text-small">
         {state.queueEndsBeforeSeason && state.queueProjectedEnd ? (
-          <span>A fila acaba em {shortDate(state.queueProjectedEnd)}. Escolha o próximo curso. </span>
+          <span>A fila acaba em {projDate(state.queueProjectedEnd)}. Escolha o próximo curso. </span>
         ) : null}
         <Link href="/cursos" className="link">
           Ver cursos

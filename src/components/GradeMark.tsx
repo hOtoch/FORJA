@@ -3,16 +3,17 @@
 
 import { season1 } from '@/config/season1';
 import type { GameState, GradeLetter } from '@/lib/types';
+import { fmtPct } from './format';
 
 const NEXT_UP: Record<GradeLetter, 'S' | 'A' | 'B' | null> = { S: null, A: 'S', B: 'A', C: 'B' };
 
 function gradeHint(letter: GradeLetter | null, totalPct: number, final: boolean): string {
   if (!letter) return 'A nota aparece depois do primeiro dia fechado.';
-  if (final) return `Média de ${totalPct}% na temporada.`;
+  if (final) return `Média de ${fmtPct(totalPct)} na temporada.`;
   const up = NEXT_UP[letter];
   return up
-    ? `Média de ${totalPct}%. Com ${season1.grade[up]}%, sobe para ${up}.`
-    : `Média de ${totalPct}%. Mantenha o ritmo até 23/12.`;
+    ? `Média de ${fmtPct(totalPct)}. Com ${season1.grade[up]}%, sobe para ${up}.`
+    : `Média de ${fmtPct(totalPct)}. Mantenha o ritmo até 23/12.`;
 }
 
 export function GradeMark({ state }: { state: GameState }) {
@@ -37,7 +38,7 @@ export function GradeMark({ state }: { state: GameState }) {
           role="img"
           aria-label={
             grade.letter
-              ? `${final ? 'Nota final' : 'Nota prevista'} ${grade.letter}, média de ${grade.totalPct}%`
+              ? `${final ? 'Nota final' : 'Nota prevista'} ${grade.letter}, média de ${fmtPct(grade.totalPct)}`
               : 'A nota aparece depois do primeiro dia fechado'
           }
         >
@@ -53,7 +54,7 @@ export function GradeMark({ state }: { state: GameState }) {
           {rows.map((r) => (
             <div key={r.name} className="contents">
               <dt className="text-body">{r.name}</dt>
-              <dd className="text-right text-body font-medium num">{r.pct}%</dd>
+              <dd className="text-right text-body font-medium num">{fmtPct(r.pct)}</dd>
             </div>
           ))}
         </dl>

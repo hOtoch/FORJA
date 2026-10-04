@@ -11,6 +11,18 @@ const hmFmt = new Intl.DateTimeFormat('pt-BR', {
   minute: '2-digit',
 });
 
+const pctFmt = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 });
+
+/** 91.6666 → "91,7%" */
+export function fmtPct(n: number): string {
+  return `${pctFmt.format(n)}%`;
+}
+
+/** Data prevista: "27/12" no ano da temporada, "26/06/2027" fora dele. */
+export function projDate(date: string): string {
+  return date.slice(0, 4) === season1.start.slice(0, 4) ? shortDate(date) : `${shortDate(date)}/${date.slice(0, 4)}`;
+}
+
 /** 1240 → "1.240" */
 export function fmtInt(n: number): string {
   return intFmt.format(Math.round(n));

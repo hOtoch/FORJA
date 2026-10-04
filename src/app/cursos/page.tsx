@@ -1,10 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { lessonName, minutesLabel } from '@/components/format';
+import { lessonName, minutesLabel, projDate } from '@/components/format';
 import { MedalIcon } from '@/components/icons';
 import { season1 } from '@/config/season1';
-import { getSampleState } from '@/lib/game/fixture';
-import { shortDate } from '@/lib/time';
+import { loadGameState } from '@/lib/load-state';
 import type { CourseProgress, GameState } from '@/lib/types';
 
 export const metadata: Metadata = { title: 'Cursos do Forja' };
@@ -13,8 +12,8 @@ function summary(state: GameState): string {
   const end = state.queueProjectedEnd;
   if (!end) return 'Ainda não dá para prever quando a fila acaba.';
   if (state.queueEndsBeforeSeason)
-    return `No seu ritmo, a fila acaba em ${shortDate(end)}, antes do fim da temporada. Escolha o próximo curso.`;
-  return `No seu ritmo, a fila acaba em ${shortDate(end)}.`;
+    return `No seu ritmo, a fila acaba em ${projDate(end)}, antes do fim da temporada. Escolha o próximo curso.`;
+  return `No seu ritmo, a fila acaba em ${projDate(end)}.`;
 }
 
 function CourseMap({ course, position, state }: { course: CourseProgress; position: number; state: GameState }) {
@@ -39,7 +38,7 @@ function CourseMap({ course, position, state }: { course: CourseProgress; positi
         {course.completed ? ', concluído.' : <span className="num">, faltam {minutesLabel(leftMin)} de vídeo.</span>}
       </p>
       <p className="text-body num">
-        {course.completed ? '' : course.projectedEnd ? `Previsão: até ${shortDate(course.projectedEnd)}.` : 'Sem previsão.'}
+        {course.completed ? '' : course.projectedEnd ? `Previsão: até ${projDate(course.projectedEnd)}.` : 'Sem previsão.'}
       </p>
       <div className="rail mt-3" aria-hidden="true">
         <span style={{ width: `${pct}%` }} />
@@ -95,8 +94,8 @@ function CourseMap({ course, position, state }: { course: CourseProgress; positi
   );
 }
 
-export default function CursosPage() {
-  const state = getSampleState();
+export default async function CursosPage() {
+  const state = await loadGameState();
   return (
     <div className="mx-auto w-full max-w-[1776px] px-4 pb-16 pt-4 md:px-8 desk:px-12 desk:pt-5">
       <header className="flex items-start justify-between gap-6">
