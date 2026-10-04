@@ -20,6 +20,13 @@ describe('sequência e escudos', () => {
     expect(g.status.reasons).toContain('Ontem ficou sem estudo. Se hoje também ficar, a sequência quebra.');
   });
 
+  it('não gasta escudo quando não há sequência para proteger', () => {
+    // 05/10 sem estudo, logo no primeiro dia: o escudo fica guardado.
+    const g = game([study('2026-10-06', 60)], at('2026-10-07'));
+    expect(dayOf(g, '2026-10-05').shieldUsed).toBe(false);
+    expect(g.streak).toEqual({ current: 1, best: 1, shields: 1 });
+  });
+
   it('depois do escudo, a sequência continua somando', () => {
     const records = [...studyRange('2026-10-05', '2026-10-07'), study('2026-10-09', 60)];
     const g = game(records, at('2026-10-14'));
@@ -43,10 +50,9 @@ describe('sequência e escudos', () => {
   });
 
   it('falha sem escudo zera', () => {
-    // 05/10 sem estudo gasta o escudo; 09/10 fica sem proteção
-    const g = game(studyRange('2026-10-06', '2026-10-08'), at('2026-10-14'));
-    expect(dayOf(g, '2026-10-05').shieldUsed).toBe(true);
-    expect(dayOf(g, '2026-10-09').shieldUsed).toBe(false);
+    const noShields: SeasonConfig = { ...season1, shields: { initial: 0, max: 2 } };
+    const g = game(studyRange('2026-10-05', '2026-10-07'), at('2026-10-09'), noShields);
+    expect(dayOf(g, '2026-10-08').shieldUsed).toBe(false);
     expect(g.streak).toEqual({ current: 0, best: 3, shields: 0 });
   });
 

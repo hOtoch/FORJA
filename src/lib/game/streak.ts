@@ -44,7 +44,8 @@ export function computeStreak(input: DayInfo[], config: SeasonConfig, today: str
       } else {
         if (prevFailed) {
           current = 0;
-        } else if (shields > 0) {
+        } else if (shields > 0 && current > 0) {
+          // Só gasta escudo se houver sequência para proteger.
           shields -= 1;
           d.shieldUsed = true;
         } else {
