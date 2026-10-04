@@ -8,7 +8,8 @@ import { computeGameState } from '@/lib/game';
 import { getStore } from '@/lib/store';
 import { now } from '@/lib/time';
 
-const NO_STORE = { 'Cache-Control': 'no-store' };
+// charset explícito: o PowerShell 5.1 lê JSON sem charset como Latin-1 e troca os acentos.
+const NO_STORE = { 'Cache-Control': 'no-store', 'Content-Type': 'application/json; charset=utf-8' };
 
 function unauthorized() {
   return Response.json({ error: 'unauthorized' }, { status: 401, headers: NO_STORE });
