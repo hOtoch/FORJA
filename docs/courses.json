@@ -1,0 +1,1429 @@
+{
+ "_source": "plataforma.pythonando.com.br, extracted 2026-10-03. 'min' = duration shown by the platform (0 = not informed). Lesson URL: https://plataforma.pythonando.com.br/membros/curso/<slug>?atual_aula_curso=<id>",
+ "courses": [
+  {
+   "slug": "desenvolvimento-assistido-por-ia",
+   "name": "Desenvolvimento assistido por IA",
+   "excludedModules": [
+    {
+     "name": "Formações completas: Python Full + Python Full AI",
+     "min": 31,
+     "lessons": [
+      [
+       1038,
+       "01 - Apresenção das formações",
+       31
+      ]
+     ],
+     "reason": "promotional lesson"
+    }
+   ],
+   "modules": [
+    {
+     "name": "Ferramental - Claude Code e Cursor",
+     "min": 65,
+     "lessons": [
+      [
+       1037,
+       "00 - Como estudar com o MCP do curso",
+       0
+      ],
+      [
+       975,
+       "01 - Introdução ao DAPIA",
+       2
+      ],
+      [
+       976,
+       "02 - Instalação - Claude Code e Cursor",
+       13
+      ],
+      [
+       977,
+       "03 - Introdução ao Claude Code e Cursor",
+       8
+      ],
+      [
+       978,
+       "04 - Skills - Teoria",
+       5
+      ],
+      [
+       979,
+       "05 - Skills - Pratica",
+       9
+      ],
+      [
+       986,
+       "06 - Rules",
+       8
+      ],
+      [
+       987,
+       "07 - Conectando a MCP server",
+       8
+      ],
+      [
+       984,
+       "08 - Subagents",
+       9
+      ],
+      [
+       985,
+       "09 - Subagents 02",
+       0
+      ]
+     ]
+    },
+    {
+     "name": "Spec Driven Development",
+     "min": 21,
+     "lessons": [
+      [
+       990,
+       "01 - Spec Driven Development",
+       5
+      ],
+      [
+       991,
+       "02 - Techspec e PRD",
+       5
+      ],
+      [
+       992,
+       "03 - Speckit",
+       10
+      ]
+     ]
+    },
+    {
+     "name": "Test-Driven Development - TDD",
+     "min": 10,
+     "lessons": [
+      [
+       1014,
+       "01 - Introdoção a TDD",
+       6
+      ],
+      [
+       1015,
+       "02 - TDD com IA",
+       4
+      ]
+     ]
+    },
+    {
+     "name": "PR Review com Github Actions (CI/CD) e Claude Code",
+     "min": 36,
+     "lessons": [
+      [
+       1016,
+       "01 - Fluxo de publicação com IA CI e CD",
+       7
+      ],
+      [
+       1017,
+       "02 - Visao geral Github actions",
+       4
+      ],
+      [
+       1018,
+       "03 - PR review com Claude Code e Github Actions",
+       10
+      ],
+      [
+       1019,
+       "04 - Changelog, validacao de autores e testes",
+       11
+      ],
+      [
+       1020,
+       "05 - Analise de issues automatica",
+       2
+      ]
+     ]
+    },
+    {
+     "name": "Context engineering",
+     "min": 26,
+     "lessons": [
+      [
+       1021,
+       "01 - Introducao a engenharia de contexto",
+       3
+      ],
+      [
+       1022,
+       "02 - Documentacao profissional",
+       12
+      ],
+      [
+       1023,
+       "03 - Subagent para atualizar a doc",
+       5
+      ],
+      [
+       1024,
+       "04 - fine-tuning",
+       3
+      ],
+      [
+       1025,
+       "05 - Contexto das ferramentas",
+       1
+      ]
+     ]
+    },
+    {
+     "name": "Contexto baseado em grafos",
+     "min": 0,
+     "lessons": [
+      [
+       1026,
+       "01 - introdução ao graphify",
+       0
+      ],
+      [
+       1027,
+       "02 - Implementacao do graphify",
+       0
+      ]
+     ]
+    },
+    {
+     "name": "Quality Gate - Controle de qualidade",
+     "min": 94,
+     "lessons": [
+      [
+       1028,
+       "01 - introdução a qualidade de código",
+       0
+      ],
+      [
+       1031,
+       "02 - Teste de carga",
+       94
+      ],
+      [
+       1032,
+       "03 - Subagent para teste de carga",
+       0
+      ],
+      [
+       1029,
+       "04 - Complexidade ciclomática",
+       0
+      ],
+      [
+       1030,
+       "05 - Estrutura de Dependência",
+       0
+      ]
+     ]
+    },
+    {
+     "name": "Segurança em apps assistidos por IA",
+     "min": 203,
+     "lessons": [
+      [
+       1035,
+       "01 - Strix - Agent realizando pentest",
+       0
+      ],
+      [
+       1036,
+       "02 - Strix Agents de pentest",
+       0
+      ],
+      [
+       925,
+       "1 - Tudo sobre segurança em apps web",
+       77
+      ],
+      [
+       1034,
+       "08 - Owasp top 10",
+       62
+      ],
+      [
+       1006,
+       "08 - Owasp top 10",
+       62
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "python-full-ai-profissional",
+   "name": "Python Full AI (profissional)",
+   "modules": [
+    {
+     "name": "Introdução a trilha profissional",
+     "min": 24,
+     "lessons": [
+      [
+       696,
+       "1 - Introdução a trilha profissional",
+       5
+      ],
+      [
+       697,
+       "2 - Tipos de conexões com LLM's",
+       13
+      ],
+      [
+       698,
+       "3 - Fine Tuning Vs LoRa vs RAG",
+       4
+      ]
+     ]
+    },
+    {
+     "name": "API OpenAI",
+     "min": 152,
+     "lessons": [
+      [
+       699,
+       "1 - Entendendo a OPENAI",
+       5
+      ],
+      [
+       700,
+       "2 - Precificação e tokens",
+       5
+      ],
+      [
+       701,
+       "3 - api key",
+       2
+      ],
+      [
+       702,
+       "4 - Conectanto com a API",
+       9
+      ],
+      [
+       703,
+       "5 - Realizando perguntas ao modelo",
+       24
+      ],
+      [
+       704,
+       "6 - Stream da resposta",
+       9
+      ],
+      [
+       705,
+       "7 - Adição de ferramentas (tools)",
+       24
+      ],
+      [
+       706,
+       "8 - O que são assistents",
+       4
+      ],
+      [
+       707,
+       "9 - Asistents | Code Interpreter",
+       18
+      ],
+      [
+       708,
+       "10 - Exibindo o pensamento",
+       4
+      ],
+      [
+       709,
+       "11 - Assistents | Envio de arquivos",
+       5
+      ],
+      [
+       710,
+       "12 - Correção",
+       3
+      ],
+      [
+       711,
+       "13 - Geração de imagens",
+       19
+      ],
+      [
+       712,
+       "14 - Geração de imagens #2",
+       2
+      ],
+      [
+       713,
+       "15 - texto para áudio",
+       9
+      ],
+      [
+       714,
+       "16 - Transcrição de áudio",
+       4
+      ]
+     ]
+    },
+    {
+     "name": "LangChain",
+     "min": 148,
+     "lessons": [
+      [
+       715,
+       "1 - Introdução ao LangChain",
+       5
+      ],
+      [
+       716,
+       "2 - ChatModel | OpenA",
+       7
+      ],
+      [
+       717,
+       "3 - Modelos OpenSource e Quantização",
+       9
+      ],
+      [
+       718,
+       "4 - ChatModel | Ollama",
+       5
+      ],
+      [
+       719,
+       "5 - Correção | Importaçao das messages",
+       0
+      ],
+      [
+       720,
+       "6 - Cache persistente",
+       7
+      ],
+      [
+       721,
+       "7 - Cache com Redis",
+       5
+      ],
+      [
+       722,
+       "8 - Memory | Armazenando os contexto",
+       9
+      ],
+      [
+       723,
+       "9 - Prompt Template",
+       15
+      ],
+      [
+       724,
+       "10 - ChatPromptTemplate",
+       3
+      ],
+      [
+       725,
+       "11 - OutputParsers",
+       18
+      ],
+      [
+       726,
+       "12 - Chains",
+       8
+      ],
+      [
+       727,
+       "13 - Observabilidade com LangSmith",
+       7
+      ],
+      [
+       728,
+       "14 - Runnable Lambda",
+       10
+      ],
+      [
+       729,
+       "15 - Runnables AI",
+       21
+      ],
+      [
+       730,
+       "16 - Retry e Fallbacks",
+       6
+      ],
+      [
+       731,
+       "17 - Finalização",
+       5
+      ]
+     ]
+    },
+    {
+     "name": "RAG com LangChain",
+     "min": 96,
+     "lessons": [
+      [
+       732,
+       "1 - RAG teoria",
+       19
+      ],
+      [
+       733,
+       "2 - Document Loaders",
+       9
+      ],
+      [
+       734,
+       "3 - Loaders personalizados",
+       8
+      ],
+      [
+       735,
+       "4 - OCR com Pytesseract",
+       6
+      ],
+      [
+       736,
+       "5 - Chunks e Embeddings",
+       4
+      ],
+      [
+       737,
+       "6 - FAISS | Banco vetorial",
+       10
+      ],
+      [
+       738,
+       "7 - Implementação com Strategy",
+       13
+      ],
+      [
+       739,
+       "8 - Retrieval",
+       13
+      ],
+      [
+       740,
+       "9 - Criando o RAGContext",
+       9
+      ]
+     ]
+    },
+    {
+     "name": "Fine-Tuning",
+     "min": 27,
+     "lessons": [
+      [
+       741,
+       "1 - Treinando seu modelo",
+       11
+      ],
+      [
+       742,
+       "2 - Usando o modelo treinado",
+       3
+      ],
+      [
+       743,
+       "3 - Treinando seu modelo com Python",
+       4
+      ],
+      [
+       744,
+       "4 - Treinando seu modelo com subprocess",
+       7
+      ]
+     ]
+    },
+    {
+     "name": "MCP Server",
+     "min": 91,
+     "lessons": [
+      [
+       745,
+       "01 - Introdução a MCP",
+       7
+      ],
+      [
+       746,
+       "02 - Server | Construindo o servidor MCP",
+       11
+      ],
+      [
+       747,
+       "03 - Client | Conectando ao servidor",
+       7
+      ],
+      [
+       748,
+       "04 - Server | Parametros Annotated",
+       3
+      ],
+      [
+       749,
+       "05 - MCP + LLM 1",
+       23
+      ],
+      [
+       750,
+       "06 - MCP + LLM 2",
+       10
+      ],
+      [
+       751,
+       "07 - Segurança e prompt injection",
+       8
+      ],
+      [
+       752,
+       "08 - Autenticação em MCP Server",
+       19
+      ]
+     ]
+    },
+    {
+     "name": "Agno | Agentes e equipes de agentes de IA",
+     "min": 131,
+     "lessons": [
+      [
+       793,
+       "01 - Introdução ao Agno",
+       6
+      ],
+      [
+       794,
+       "02 - Seu primeiro agente",
+       6
+      ],
+      [
+       795,
+       "03 - Usando Tools",
+       9
+      ],
+      [
+       796,
+       "04 - Usando o Run",
+       6
+      ],
+      [
+       797,
+       "05 - Criando tools personalizadas",
+       9
+      ],
+      [
+       798,
+       "06 - AgentOS",
+       6
+      ],
+      [
+       799,
+       "07 - Output Schemas",
+       5
+      ],
+      [
+       800,
+       "08 - Input Schemas",
+       2
+      ],
+      [
+       801,
+       "09 - Engenharia de contexto",
+       4
+      ],
+      [
+       802,
+       "10 - System Message",
+       2
+      ],
+      [
+       803,
+       "11 - Session State",
+       16
+      ],
+      [
+       804,
+       "12 - Controlando Sessões de usuários",
+       4
+      ],
+      [
+       805,
+       "13 - Adicionando histórico de conversa",
+       4
+      ],
+      [
+       806,
+       "14 - Memória do user",
+       9
+      ],
+      [
+       807,
+       "15 - RAG com Agno | Adicionando conhecimento ao modelo",
+       17
+      ],
+      [
+       848,
+       "16 - Guardrails",
+       8
+      ],
+      [
+       885,
+       "17 - Skills",
+       10
+      ]
+     ]
+    },
+    {
+     "name": "LoRa com Fal.ai",
+     "min": 50,
+     "lessons": [
+      [
+       808,
+       "1 - introducao ao Lora",
+       2
+      ],
+      [
+       809,
+       "2 - Conhecendo o Fal e treinando o modelo",
+       14
+      ],
+      [
+       810,
+       "3 - Gerando imagens via API",
+       6
+      ],
+      [
+       811,
+       "4 - Updates em realtime",
+       3
+      ],
+      [
+       812,
+       "5 - Gerando imagens de forma async",
+       7
+      ],
+      [
+       813,
+       "6 - Corrigindo erro",
+       1
+      ],
+      [
+       814,
+       "7 - Treinando o modelo para criação de clones",
+       6
+      ],
+      [
+       815,
+       "8 - Gerando imagens com clones do Caio",
+       7
+      ]
+     ]
+    },
+    {
+     "name": "Deploy de agentes de IA | AgentOS + Railway",
+     "min": 34,
+     "lessons": [
+      [
+       816,
+       "1 - Introducao ao deploy",
+       5
+      ],
+      [
+       817,
+       "2 - Dockerfile e Entrypoint",
+       9
+      ],
+      [
+       818,
+       "3 - Subindo para o Github",
+       4
+      ],
+      [
+       819,
+       "4 - Configurando a Railway",
+       2
+      ],
+      [
+       820,
+       "5 - Finalizando o deploy",
+       7
+      ],
+      [
+       821,
+       "6 - Consumindo seu agent",
+       3
+      ],
+      [
+       822,
+       "7 - Agno OS",
+       1
+      ]
+     ]
+    },
+    {
+     "name": "CrewAI | Orquestrando múltiplos agentes de IA",
+     "min": 43,
+     "lessons": [
+      [
+       823,
+       "1 - Disclaimer | Talvez esse módulo não seja para você",
+       2
+      ],
+      [
+       849,
+       "2 - Estrutura do CrewAI",
+       8
+      ],
+      [
+       850,
+       "3 - Criando sua Crew",
+       19
+      ],
+      [
+       851,
+       "4 - Tipos de processos",
+       3
+      ],
+      [
+       852,
+       "5 - Adicionando Tools",
+       8
+      ]
+     ]
+    },
+    {
+     "name": "Funcionalidades de visão computacional para Agentes de IA",
+     "min": 47,
+     "lessons": [
+      [
+       824,
+       "1 - Introdução ao processamento de imagens para agentes de IA",
+       2
+      ],
+      [
+       825,
+       "2 - Haarcascade teoria",
+       4
+      ],
+      [
+       826,
+       "3 - Haarcascade prática",
+       14
+      ],
+      [
+       827,
+       "4 - Identificação de objetos em tempo real",
+       2
+      ],
+      [
+       828,
+       "5 - OCR Simples",
+       3
+      ],
+      [
+       829,
+       "6 - OCR Profissional",
+       10
+      ],
+      [
+       831,
+       "7 - Filtros de OCR com RE",
+       4
+      ],
+      [
+       830,
+       "8 - Detecção de marca d'agua",
+       6
+      ]
+     ]
+    },
+    {
+     "name": "Interfaces para seus agentes com Streamlit",
+     "min": 56,
+     "lessons": [
+      [
+       832,
+       "1 - Introdução ao streamlit",
+       2
+      ],
+      [
+       833,
+       "2 - Sua primeira interface",
+       5
+      ],
+      [
+       834,
+       "3 - Programação orientada a eventos",
+       8
+      ],
+      [
+       835,
+       "4 - Criando uma sidebar",
+       14
+      ],
+      [
+       836,
+       "5 - Chat",
+       10
+      ],
+      [
+       837,
+       "6 - Integrando com o agente e streaming de dados",
+       10
+      ],
+      [
+       838,
+       "7 - Finalização.",
+       2
+      ]
+     ]
+    },
+    {
+     "name": "Múltiplos agentes de IA",
+     "min": 69,
+     "lessons": [
+      [
+       839,
+       "1 - Introdução a multiplos agentes",
+       3
+      ],
+      [
+       840,
+       "2 - Criando os agentes",
+       12
+      ],
+      [
+       841,
+       "3 - Criando um supervisor",
+       11
+      ],
+      [
+       842,
+       "4 - Configurações extras",
+       5
+      ],
+      [
+       843,
+       "5 - Introdução a Workflows",
+       3
+      ],
+      [
+       844,
+       "6 - Workflow linear",
+       9
+      ],
+      [
+       845,
+       "7 - Workflow condicional",
+       12
+      ],
+      [
+       846,
+       "8 - Workflow palalelo",
+       3
+      ],
+      [
+       847,
+       "9 - Workflow loop",
+       7
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "python-full-ai-2025",
+   "name": "Python Full AI (Acadêmico)",
+   "note": "module 'Apêndice (matemática)' lesson order fixed by number prefix (platform shows 02 before 01); '.mp4' suffixes stripped",
+   "modules": [
+    {
+     "name": "Apêndice (matemática)",
+     "min": 76,
+     "lessons": [
+      [
+       609,
+       "00 - Somatório",
+       0
+      ],
+      [
+       610,
+       "01 - Funções",
+       13
+      ],
+      [
+       622,
+       "02 - Plano cartesiano",
+       16
+      ],
+      [
+       623,
+       "03 - Função afim",
+       14
+      ],
+      [
+       624,
+       "04 - Função quadrática",
+       21
+      ],
+      [
+       625,
+       "05 - Polinômios",
+       10
+      ]
+     ]
+    },
+    {
+     "name": "Apêndice (Numpy - Algebra linear)",
+     "min": 27,
+     "lessons": [
+      [
+       668,
+       "1 - O que é Numpy",
+       6
+      ],
+      [
+       669,
+       "2 - Arrays e Matrizes",
+       8
+      ],
+      [
+       670,
+       "3 - Multiplicação de matrizes",
+       5
+      ],
+      [
+       671,
+       "4 - Multiplicação de matrizes",
+       5
+      ],
+      [
+       672,
+       "5 - Número de Euler",
+       2
+      ]
+     ]
+    },
+    {
+     "name": "Perceptron",
+     "min": 83,
+     "lessons": [
+      [
+       644,
+       "00 - Introdução a Machine Learning",
+       9
+      ],
+      [
+       645,
+       "01 - Introdução ao Perceptron",
+       5
+      ],
+      [
+       646,
+       "02 - Soma ponderada",
+       12
+      ],
+      [
+       647,
+       "03 - Função de ativação",
+       8
+      ],
+      [
+       648,
+       "04 - Treinamento do neurônio",
+       14
+      ],
+      [
+       649,
+       "05 - Limitações do perceptron",
+       5
+      ],
+      [
+       653,
+       "06 - Sigmoid",
+       15
+      ],
+      [
+       654,
+       "07 - Vanishing gradient",
+       7
+      ],
+      [
+       655,
+       "08 - Representação em algebra linear",
+       5
+      ]
+     ]
+    },
+    {
+     "name": "Projeto prático | Perceptron",
+     "min": 61,
+     "lessons": [
+      [
+       673,
+       "1 - Desenvolvimento perceptron #1",
+       0
+      ],
+      [
+       674,
+       "2 - Desenvolvimento perceptron #2",
+       19
+      ],
+      [
+       675,
+       "3 - Fronteira de decisão",
+       5
+      ],
+      [
+       676,
+       "4 - Sigmoid",
+       22
+      ],
+      [
+       677,
+       "5 - Fronteira de decisão",
+       7
+      ],
+      [
+       695,
+       "06 - Corrigindo erro (Normalização)",
+       7
+      ]
+     ]
+    },
+    {
+     "name": "Cálculo infinitesimal para IA",
+     "min": 85,
+     "lessons": [
+      [
+       753,
+       "1 - Introdução ao cálculo infinitesimal",
+       16
+      ],
+      [
+       754,
+       "2 - Intuição de limites",
+       10
+      ],
+      [
+       755,
+       "3 - Resolvendo exercícios",
+       2
+      ],
+      [
+       756,
+       "5 - Introdução a Derivadas",
+       6
+      ],
+      [
+       757,
+       "6 - Introdução a derivadas",
+       3
+      ],
+      [
+       758,
+       "7 - Calculando a tangente",
+       7
+      ],
+      [
+       759,
+       "8 - Utilidade em redes neurais",
+       11
+      ],
+      [
+       760,
+       "9 - Calculando a derivada",
+       11
+      ],
+      [
+       762,
+       "10 - Calculando a derivada 2",
+       7
+      ],
+      [
+       763,
+       "11 - Diferentes nomenclaturas",
+       3
+      ],
+      [
+       764,
+       "12 - Regra da potência",
+       5
+      ]
+     ]
+    },
+    {
+     "name": "Derivadas parciais para IA",
+     "min": 21,
+     "lessons": [
+      [
+       765,
+       "1 - Derivadas parciais para redes neurais",
+       9
+      ],
+      [
+       766,
+       "2 - Derivadas com constantes",
+       5
+      ],
+      [
+       767,
+       "3 - Derivadas parciais",
+       6
+      ]
+     ]
+    },
+    {
+     "name": "Multilayer perceptron e Backpropagation",
+     "min": 92,
+     "lessons": [
+      [
+       768,
+       "1 - Introdução a MLP",
+       6
+      ],
+      [
+       769,
+       "2 - Gerando a equação do MLP",
+       10
+      ],
+      [
+       770,
+       "3 - Aplicando a equação",
+       4
+      ],
+      [
+       771,
+       "4 - MSE",
+       11
+      ],
+      [
+       772,
+       "5- MSE Aplicado",
+       8
+      ],
+      [
+       773,
+       "6 - MLP com algebra linear",
+       10
+      ],
+      [
+       774,
+       "07 - Gradiente descendente",
+       23
+      ],
+      [
+       775,
+       "8 - GD e BP em MLP",
+       4
+      ],
+      [
+       776,
+       "9 - overfitting",
+       4
+      ],
+      [
+       777,
+       "10 - Regularização L2",
+       7
+      ]
+     ]
+    },
+    {
+     "name": "Projeto prático 2 | MLP",
+     "min": 153,
+     "lessons": [
+      [
+       778,
+       "1 - Funções de ativação",
+       10
+      ],
+      [
+       779,
+       "2 - Construção da classe MLP",
+       8
+      ],
+      [
+       780,
+       "3 - Inicialização dos pesos e bias",
+       14
+      ],
+      [
+       781,
+       "4 - Feedforward",
+       17
+      ],
+      [
+       782,
+       "5 - Calculando o erro",
+       6
+      ],
+      [
+       783,
+       "6 - Regra delta",
+       14
+      ],
+      [
+       784,
+       "7 - Atualizando os pesos apartir dos gradientes",
+       4
+      ],
+      [
+       785,
+       "8 - Gradiente implementação",
+       18
+      ],
+      [
+       786,
+       "9 - Tipos de gradientes",
+       8
+      ],
+      [
+       787,
+       "10 - Treinamento",
+       27
+      ],
+      [
+       788,
+       "11 - Corrigindo erros",
+       1
+      ],
+      [
+       789,
+       "12 - Predict",
+       6
+      ],
+      [
+       790,
+       "13 - Fronteira de decisão",
+       7
+      ],
+      [
+       791,
+       "14 - derivada sigmoid vs derivada tanh",
+       4
+      ],
+      [
+       792,
+       "15 - Dicas de projetos",
+       3
+      ]
+     ]
+    },
+    {
+     "name": "MLP - Classificação múltipla",
+     "min": 48,
+     "lessons": [
+      [
+       867,
+       "1 - Introdução a classificação múltipla",
+       2
+      ],
+      [
+       868,
+       "2 - Binary Cross Entropy",
+       4
+      ],
+      [
+       869,
+       "3 - Implementacao BCE",
+       5
+      ],
+      [
+       870,
+       "4 - Classificacao múltipla",
+       5
+      ],
+      [
+       871,
+       "5 - Matemática softmax",
+       6
+      ],
+      [
+       872,
+       "6 - Implementação CM #1",
+       14
+      ],
+      [
+       873,
+       "07 - Implementação CM #2",
+       9
+      ]
+     ]
+    },
+    {
+     "name": "Redes neurais convolucionais",
+     "min": 81,
+     "lessons": [
+      [
+       853,
+       "1 - O que é uma imagem",
+       6
+      ],
+      [
+       854,
+       "2 - Por que não usar MLP para imagens",
+       3
+      ],
+      [
+       855,
+       "3 - Etapa de convolução",
+       6
+      ],
+      [
+       856,
+       "4 - Aplicação de kernels",
+       5
+      ],
+      [
+       857,
+       "5 - Matemática da convolução",
+       7
+      ],
+      [
+       858,
+       "6 - Hiperparametros",
+       4
+      ],
+      [
+       859,
+       "7 - Visualização gráfica",
+       2
+      ],
+      [
+       860,
+       "08 - ReLu",
+       4
+      ],
+      [
+       861,
+       "09 - Pooling",
+       5
+      ],
+      [
+       862,
+       "10 - Flattening",
+       7
+      ],
+      [
+       863,
+       "11 - Visualizando uma cnn",
+       7
+      ],
+      [
+       864,
+       "12 - CNN na prática 1",
+       5
+      ],
+      [
+       865,
+       "13 - CNN na prática 2",
+       8
+      ],
+      [
+       866,
+       "14 - CNN na prática 3",
+       6
+      ]
+     ]
+    }
+   ]
+  }
+ ]
+}

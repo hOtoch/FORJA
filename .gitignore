@@ -1,0 +1,25 @@
+# Python (ambiente do spec-kit)
+.venv/
+__pycache__/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# Vercel
+.vercel/
+
+# Variáveis de ambiente (segredos ficam fora do git)
+.env
+.env.*
+!.env.example
+
+# Claude Code: configurações locais desta máquina
+.claude/settings.local.json
+
+# Sistema
+.DS_Store
+Thumbs.db
