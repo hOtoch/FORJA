@@ -1,25 +1,41 @@
-# Python (ambiente do spec-kit)
-.venv/
-__pycache__/
+# Dependências
+/node_modules
+/.pnp
+.pnp.*
 
-# Node / Next.js
-node_modules/
-.next/
-out/
+# Next.js
+/.next/
+/out/
+/build
 *.tsbuildinfo
 next-env.d.ts
 
+# Testes
+/coverage
+
 # Vercel
-.vercel/
+.vercel
 
 # Variáveis de ambiente (segredos ficam fora do git)
 .env
 .env.*
 !.env.example
 
+# Dados locais de desenvolvimento (modo sem banco)
+/.data/
+
+# Python (ambiente do spec-kit)
+.venv/
+__pycache__/
+
+# Scripts do Windows: configuração local com token
+scripts/windows/forja.config.json
+
 # Claude Code: configurações locais desta máquina
 .claude/settings.local.json
 
-# Sistema
+# Sistema e logs
 .DS_Store
 Thumbs.db
+*.pem
+npm-debug.log*

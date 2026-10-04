@@ -25,7 +25,7 @@ type ActionResult<T = void> = { ok: true; data?: T } | { ok: false; error: strin
 | `addStudy({ day, courseSlug, minutes, lessonIds })` | registro manual | `ok` | "Só dá para registrar hoje ou ontem." / "Informe os minutos." |
 | `addGym({ day })` | hoje ou ontem | `ok` | "Só dá para registrar hoje ou ontem." |
 | `addCardio({ day, modality, minutes })` | — | `{ isSuper }` | "Cardio precisa de pelo menos 20 minutos." |
-| `useBreak()` | — | `ok` | "Não restam folgas de reserva." / "Hoje já é folga." |
+| `takeBreak()` | — | `ok` | "Não restam folgas de reserva." / "Hoje já é folga." |
 | `confirmDeposit(weekIndex)` | 1..12 | `ok` | "Essa semana ainda não fechou." / "Esse depósito já foi confirmado." |
 | `addClient({ contractCents, note })` | — | `{ bonusCents }` | "Informe o valor do contrato." |
 | `deleteRecord(id)` | id | `ok` | "Só dá para desfazer registros de hoje ou ontem." |

@@ -76,7 +76,7 @@ src/
 │   └── api/
 │       ├── status/route.ts
 │       └── export/route.ts
-├── middleware.ts                 # sessão por cookie assinado
+├── proxy.ts                      # sessão por cookie assinado (Next 16: antigo middleware)
 ├── components/                   # um arquivo por região do painel
 │   ├── SeasonBar.tsx             # a barra de 80 dias
 │   ├── TodayPanel.tsx            # "Hoje" e timer (client)
@@ -117,7 +117,7 @@ Depois da fundação (scaffold, tipos, configuração, tokens de design), quatro
 | Frente | Arquivos | Depende de |
 |---|---|---|
 | A. Motor de regras e testes | `src/lib/game/*`, `src/lib/timer.ts` | `types.ts`, `season1.ts`, `courses.json` |
-| B. Dados, acesso e APIs | `store.ts`, `auth.ts`, `middleware.ts`, `actions.ts`, `api/*`, `entrar/`, `scripts/db-setup.mjs` | `types.ts`, contratos |
+| B. Dados, acesso e APIs | `store.ts`, `auth.ts`, `proxy.ts`, `actions.ts`, `api/*`, `entrar/`, `scripts/db-setup.mjs` | `types.ts`, contratos |
 | C. Interface medieval | `components/*`, `globals.css`, `cursos/page.tsx`, com um GameState de exemplo | `types.ts`, DESIGN.md |
 | D. Scripts do Windows | `scripts/windows/*` | `contracts/windows-scripts.md` |
 

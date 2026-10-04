@@ -52,7 +52,7 @@ Projeto Next.js único na raiz: `src/app`, `src/components`, `src/lib`, `src/con
   - arquivo `.data/forja.json` com `{ records: [], kv: {} }`, quando não houver.
 - [ ] T010 [P] (B) Criar scripts/db-setup.mjs, que roda o SQL de data-model.md (`create table if not exists records`, índice e `kv`) usando `DATABASE_URL`
 - [ ] T011 [P] (B) Implementar `signSession()` e `verifySession(token)` em src/lib/auth.ts: HMAC-SHA256 via Web Crypto com `FORJA_SECRET`, payload com a expiração em 1 ano
-- [ ] T012 (B) Implementar src/middleware.ts conforme contracts/http-api.md (rotas públicas `/entrar` e `/api/status`; páginas sem sessão vão para `/entrar`; APIs sem sessão recebem 401)
+- [ ] T012 (B) Implementar src/proxy.ts conforme contracts/http-api.md (rotas públicas `/entrar` e `/api/status`; páginas sem sessão vão para `/entrar`; APIs sem sessão recebem 401)
 - [ ] T013 (B) Criar src/app/entrar/page.tsx e as actions `login` e `logout` em src/app/actions.ts. O cookie `forja_session` é httpOnly, secure em produção, sameSite lax e dura 1 ano; o erro é "Senha incorreta. Confira e tente de novo."
 - [ ] T014 [P] (C) Implementar em src/app/globals.css os tokens de DESIGN.md seção 3 (claro, escuro por `prefers-color-scheme` e `data-theme`), a textura de pergaminho a 4% e os tokens de tipografia. Em src/app/layout.tsx: Grenze Gotisch, Grenze e Alegreya Sans via `next/font/google`, `lang="pt-BR"` e título "Forja"
 - [ ] T015 [P] (C) Criar os ícones de traço 1,5 px em src/components/icons.tsx: brasão, baú trancado, baú aberto, bigorna, martelo, chama e selo de cera
@@ -239,7 +239,7 @@ Projeto Next.js único na raiz: `src/app`, `src/components`, `src/lib`, `src/con
 **Independent Test**: cenários da US7.
 
 - [ ] T056 [US7] (A) Considerar folgas planejadas e de reserva em days, weeks, streak, grade e fund, e calcular `breaks` (`reserveUsed`, `reserveLeft`, `canUseToday`) em src/lib/game/index.ts. Com testes em src/lib/game/breaks.test.ts
-- [ ] T057 [US7] (B) Implementar a action `useBreak()` ("Não restam folgas de reserva." / "Hoje já é folga.") em src/app/actions.ts
+- [ ] T057 [US7] (B) Implementar a action `takeBreak()` ("Não restam folgas de reserva." / "Hoje já é folga.") em src/app/actions.ts
 - [ ] T058 [P] [US7] (B) Implementar src/app/api/export/route.ts (download `forja-s1-AAAA-MM-DD.json`)
 - [ ] T059 [P] [US7] (C) Criar src/components/DayDrawer.tsx: gaveta pela direita com sessões, aulas, treinos, cardios, calor e o porquê, XP e R$, e "Registrar para este dia" só para hoje e ontem
 - [ ] T060 [US7] (C) Criar o menu do cabeçalho em src/components/Header.tsx: Registrar estudo, Usar folga, Cursos, Exportar dados e Sair

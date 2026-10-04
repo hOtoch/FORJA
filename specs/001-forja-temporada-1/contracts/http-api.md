@@ -37,7 +37,7 @@ Usada pelo lembrete das 21h no Windows. Só leitura.
 | `/` | Sessão | Painel |
 | `/cursos` | Sessão | Mapa dos cursos e previsão |
 
-## Middleware
+## Proxy (antigo middleware)
 
 Toda rota, exceto `/entrar`, `/api/status`, `/_next/*`, `/favicon.ico` e arquivos estáticos, exige o cookie `forja_session` válido.
 

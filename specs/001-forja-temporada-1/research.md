@@ -49,7 +49,7 @@ Decisões técnicas da fase 0. Critério geral pedido pelo usuário: o mais simp
 - **Decision**:
   - Senha única em `FORJA_PASSWORD`.
   - Ao entrar, o servidor grava um cookie `forja_session` (httpOnly, secure, sameSite lax, 1 ano) com um token assinado por HMAC-SHA256 usando `FORJA_SECRET`.
-  - O `middleware` valida o cookie com Web Crypto e manda para `/entrar` quem não tem sessão.
+  - O `proxy.ts` (nome do middleware no Next.js 16, que roda em Node) valida o cookie com Web Crypto e manda para `/entrar` quem não tem sessão.
   - O endpoint de status usa um token separado, `FORJA_STATUS_TOKEN`.
 - **Rationale**: um usuário, sem cadastro. Não precisa de biblioteca de autenticação.
 - **Alternatives considered**: Auth.js com Google (configuração externa), proteção de deployment da Vercel (limitada no plano gratuito).
