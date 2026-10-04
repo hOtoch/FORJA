@@ -39,3 +39,6 @@ scripts/windows/forja.config.json
 Thumbs.db
 *.pem
 npm-debug.log*
+
+# Worktrees dos subagentes
+.claude/worktrees/
