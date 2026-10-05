@@ -218,7 +218,8 @@ export function getStore(): Store {
         'ligue o Neon ao projeto na Vercel ou defina DATABASE_URL e rode "npm run db:setup".',
     );
   }
-  const file = path.join(process.cwd(), DEFAULT_DATA_FILE);
+  // FORJA_DATA_FILE (só em desenvolvimento) aponta para outro arquivo, por exemplo dados de demonstração.
+  const file = path.resolve(process.cwd(), process.env.FORJA_DATA_FILE?.trim() || DEFAULT_DATA_FILE);
   const key = `file:${file}`;
   if (cached?.key !== key) cached = { key, store: createFileStore(file) };
   return cached.store;

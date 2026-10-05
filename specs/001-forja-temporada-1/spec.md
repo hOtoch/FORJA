@@ -269,7 +269,7 @@ O usuário vê as folgas planejadas, usa uma das 2 folgas de reserva quando prec
 
 **Painel e aparência**
 
-- **FR-041**: O painel MUST mostrar, sem rolagem numa tela de 1920 × 919:
+- **FR-041**: O painel MUST mostrar, em cartões na ordem abaixo (a meta de hoje, o chefe e a barra sem rolagem numa tela de 1920 × 919):
   - a barra da temporada com os 80 dias;
   - "Hoje", com o timer;
   - o chefe da semana;
@@ -309,7 +309,7 @@ O usuário vê as folgas planejadas, usa uma das 2 folgas de reserva quando prec
 
 - **SC-001**: Do momento em que o app aparece até o timer de estudo correndo com a aula aberta: no máximo 1 clique e 5 segundos.
 - **SC-002**: Um treino ou um cardio é registrado em até 3 interações.
-- **SC-003**: Numa tela de 1920 × 919, o usuário vê sem rolar tudo o que precisa para decidir o dia: barra, meta de hoje, chefe, personagem, nota, Fundo, cursos e baús.
+- **SC-003**: Numa tela de 1920 × 919, o usuário vê sem rolar o que decide o dia: a meta de hoje com o botão de estudar, o chefe da semana e a barra da temporada. O resto (personagem, Fundo, nota, estudo dos 14 dias, cursos e baús) vem logo abaixo, agrupado em cartões. Revisado em 05/10/2026, depois do retorno de que o painel sem rolagem ficava embolado.
 - **SC-004**: Com o cenário de temporada perfeita, o app mostra exatamente:
   - R$ 1.500 no Fundo;
   - nota S;

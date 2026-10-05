@@ -309,9 +309,112 @@ body::before {
   /* faixa dentro de uma região (presença do timer, avisos) */
   .band {
     border-left: 3px solid var(--text);
-    background: var(--surface);
+    background: var(--bg);
     border-radius: 0 6px 6px 0;
     padding: 0.75rem 1rem;
+  }
+
+  /* ---------- painéis (revisão 2 do DESIGN.md: agrupar por cartão) ---------- */
+
+  /* Cartão de pergaminho: uma folha mais clara, borda fina, sem sombra cinza. */
+  .card {
+    min-width: 0;
+    height: 100%;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 1.25rem 1.5rem;
+  }
+  .card-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+  .card-title {
+    font-family: var(--font-gothic);
+    font-size: 1.5rem;
+    line-height: 1.75rem;
+    font-weight: 700;
+  }
+  .card-meta {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  /* número de destaque: a mesma sem serifa do texto, algarismos proporcionais */
+  .figure {
+    font-family: var(--font-sans);
+    font-weight: 700;
+    font-variant-numeric: lining-nums proportional-nums;
+    letter-spacing: -0.01em;
+  }
+
+  /* selo de estatística na faixa da temporada */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    height: 40px;
+    padding: 0 0.875rem 0 0.625rem;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    font-size: 0.9375rem;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  /* medidor: preenchimento na cor do papel, trilho um degrau mais claro */
+  .meter {
+    position: relative;
+    height: 10px;
+    border-radius: 5px;
+    background: var(--track);
+    overflow: hidden;
+  }
+  .meter > span {
+    position: absolute;
+    inset: 0 auto 0 0;
+    border-radius: 5px;
+    background: var(--text);
+    transition: width 400ms ease;
+  }
+  .meter-sm {
+    height: 6px;
+  }
+
+  /* medalhão: o fundo de ferro das ilustrações, igual nos dois temas */
+  .medallion {
+    display: block;
+    flex-shrink: 0;
+    border-radius: 999px;
+    box-shadow: 0 0 0 1px var(--line);
+  }
+
+  /* dia de folga na tira da semana: listras a 45° */
+  .forja-hatched {
+    background: repeating-linear-gradient(45deg, var(--bg) 0 5px, var(--track) 5px 7px);
+  }
+
+  .forja-ring-arc {
+    transition: stroke-dasharray 500ms ease;
+  }
+
+  /* quadro da tarefa rápida (treino, cardio) */
+  .tile {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+    padding: 0.75rem 0.875rem;
+    border-radius: 10px;
+    background: var(--bg);
+    border: 1px solid var(--line);
   }
 }
 

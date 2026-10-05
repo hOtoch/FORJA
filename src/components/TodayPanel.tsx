@@ -9,6 +9,8 @@ import { gameDay, longDate } from '@/lib/time';
 import type { ActionResult, GameState, NextLesson, TimerView } from '@/lib/types';
 import { runAction, useToast } from './feedback';
 import { clockParts, clockSpoken, courseBySlug, lessonName, minutesLabel, timeHM } from './format';
+import { BookIcon, HammerSolidIcon, HeartIcon } from './icons';
+import { RingMeter } from './viz';
 
 const MIN = 60_000;
 const PRESENCE_MS = season1.timer.presenceMinutes * MIN;
@@ -76,33 +78,6 @@ function statusSentence(state: GameState): string {
       ? `Nenhum estudo hoje ainda. Comece pela aula ${lessonName(state.nextLesson.title)}.`
       : 'Nenhum estudo hoje ainda.';
   return `Faltam ${GOAL - d.studyMinutes} min para a meta de hoje.`;
-}
-
-/** Trilho de 12 marcas de 10 min: Brasa até 60, Palha de 60 a 120, traço na meta. */
-function StudyRail({ minutes }: { minutes: number }) {
-  const marks = Array.from({ length: 12 }, (_, i) => Math.max(0, Math.min(1, (minutes - i * 10) / 10)));
-  return (
-    <div className="flex items-center gap-4">
-      <div className="relative flex w-full max-w-[420px] items-center pb-5" aria-hidden="true">
-        {marks.map((fill, i) => (
-          <span
-            key={i}
-            className={`relative h-3 flex-1 overflow-hidden rounded-[2px] bg-track ${i === 6 ? 'ml-[11px]' : i > 0 ? 'ml-[3px]' : ''}`}
-          >
-            <span
-              className="absolute inset-y-0 left-0"
-              style={{ width: `${fill * 100}%`, background: i < 6 ? 'var(--heat-2)' : 'var(--heat-3)' }}
-            />
-          </span>
-        ))}
-        <span className="absolute left-1/2 top-[-4px] h-5 w-[2px] -translate-x-1/2 bg-ink" />
-        <span className="absolute left-1/2 top-[18px] -translate-x-1/2 text-micro font-medium text-muted">meta</span>
-      </div>
-      <p className="shrink-0 pb-5 text-body font-medium num">
-        {minutes < GOAL ? `${minutes} de ${GOAL} min` : `${minutes} min de estudo`}
-      </p>
-    </div>
-  );
 }
 
 /** Algarismos em largura fixa, para o tempo não tremer. */
@@ -203,8 +178,18 @@ export function TodayPanel({ state, onOpenCardio, onStopSession }: Props) {
     });
   }
 
-  const title = `Hoje, ${longDate(state.today)}`;
   const todayMinutes = state.todayInfo?.studyMinutes ?? 0;
+  const week = state.currentWeek;
+  const gymToday = state.todayInfo?.gym ?? 0;
+  const cardioToday = state.todayInfo?.cardio ?? 0;
+  const head = (
+    <div className="card-head">
+      <h2 id="hoje-titulo" className="card-title">
+        Hoje
+      </h2>
+      <span className="card-meta">{longDate(state.today)}</span>
+    </div>
+  );
 
   if (timer) {
     const serverNow = Math.max(clock?.server ?? 0, Date.parse(state.now));
@@ -216,185 +201,225 @@ export function TodayPanel({ state, onOpenCardio, onStopSession }: Props) {
     const breakLeft = breakUntil !== null && clock ? breakUntil - clock.client : null;
     const paused = !timer.runningSince;
     const gapMin = Math.floor(n.pending / MIN);
+    const withSession = (sameDay ? todayMinutes : 0) + sessionMin;
 
     return (
-      <section aria-labelledby="hoje-titulo" className="min-w-0">
-        <h2 id="hoje-titulo" className="font-gothic text-title font-bold">
-          {title}
-        </h2>
-        <div className="mt-3 flex flex-wrap items-end gap-x-10 gap-y-2">
-          <p
-            role="timer"
-            aria-label={`Sessão de estudo: ${clockSpoken(n.credited)}`}
-            className="font-roman text-display-xl font-extrabold num"
+      <section aria-labelledby="hoje-titulo" className="card">
+        {head}
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+          <RingMeter
+            value={withSession}
+            max={GOAL}
+            size={156}
+            stroke={14}
+            label={`${withSession} de ${GOAL} minutos hoje, contando esta sessão`}
           >
-            <ClockDigits text={clockParts(n.credited)} />
-          </p>
-          <div className="min-w-0 pb-2">
-            <p className="text-body font-bold">{course?.name ?? 'Estudo livre'}</p>
-            <p className="text-small text-muted">
+            <p
+              role="timer"
+              aria-label={`Sessão de estudo: ${clockSpoken(n.credited)}`}
+              className="text-[2rem] font-bold leading-9 num"
+            >
+              <ClockDigits text={clockParts(n.credited)} />
+            </p>
+            <span className="text-small text-muted num">{paused ? 'pausado' : `${withSession} de ${GOAL} min`}</span>
+          </RingMeter>
+          <div className="min-w-0 flex-1">
+            <p className="text-lead font-bold">{course?.name ?? 'Estudo livre'}</p>
+            <p className="mt-0.5 flex items-center gap-2 text-body text-muted">
+              <BookIcon size={18} />
               {lesson ? `Aula: ${lessonName(lesson.title)}` : 'Sem próxima aula na fila'}
             </p>
-            <p className="text-small text-muted num">
-              {sameDay
-                ? `Hoje, com esta sessão: ${todayMinutes + sessionMin} min`
-                : 'Esta sessão conta para ontem, o dia em que começou.'}
+            <p className="mt-1 text-small text-muted num">
+              {sameDay ? 'A sessão soma no dia de hoje.' : 'Esta sessão conta para ontem, o dia em que começou.'}
               {timer.pomodoro && !paused && !n.awaiting
-                ? `. Pomodoro: ${Math.floor((n.credited % FOCUS_MS) / MIN)} de ${season1.timer.pomodoroFocus} min de foco`
+                ? ` Pomodoro: ${Math.floor((n.credited % FOCUS_MS) / MIN)} de ${season1.timer.pomodoroFocus} min de foco.`
                 : ''}
             </p>
-          </div>
-        </div>
 
-        {n.capped ? (
-          <div className="band mt-3" role="status">
-            <p className="text-body">A sessão chegou ao limite de 3 horas. Encerre para salvar.</p>
-          </div>
-        ) : n.awaiting && n.pending < QUICK_REPLY_MS ? (
-          <div className="band mt-3 flex flex-wrap items-center gap-x-4 gap-y-2" role="alert">
-            <p className="text-lead font-medium">Ainda estudando?</p>
-            <button
-              type="button"
-              className="btn btn-ink"
-              disabled={pending}
-              onClick={() => act(() => confirmPresence(true), 'A confirmação')}
-            >
-              Sim, continuar
-            </button>
-          </div>
-        ) : n.awaiting && n.deadline !== null ? (
-          <div className="band mt-3 flex flex-wrap items-center gap-x-4 gap-y-2" role="alert">
-            <p className="text-body font-medium">
-              O timer pausou às {timeHM(n.deadline)}. Esse intervalo foi estudo?
-            </p>
-            <div className="flex gap-2">
+            {n.capped ? (
+              <div className="band mt-3" role="status">
+                <p className="text-body">A sessão chegou ao limite de 3 horas. Encerre para salvar.</p>
+              </div>
+            ) : n.awaiting && n.pending < QUICK_REPLY_MS ? (
+              <div className="band mt-3 flex flex-wrap items-center gap-x-4 gap-y-2" role="alert">
+                <p className="text-lead font-medium">Ainda estudando?</p>
+                <button
+                  type="button"
+                  className="btn btn-ink"
+                  disabled={pending}
+                  onClick={() => act(() => confirmPresence(true), 'A confirmação')}
+                >
+                  Sim, continuar
+                </button>
+              </div>
+            ) : n.awaiting && n.deadline !== null ? (
+              <div className="band mt-3 flex flex-wrap items-center gap-x-4 gap-y-2" role="alert">
+                <p className="text-body font-medium">O timer pausou às {timeHM(n.deadline)}. Esse intervalo foi estudo?</p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-ink num"
+                    disabled={pending}
+                    onClick={() => act(() => confirmPresence(true), 'A confirmação', `${gapMin} min contados`)}
+                  >
+                    Contar {gapMin} min
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    disabled={pending}
+                    onClick={() => act(() => confirmPresence(false), 'A confirmação')}
+                  >
+                    Não contar
+                  </button>
+                </div>
+              </div>
+            ) : breakLeft !== null && paused ? (
+              <div className="band mt-3 flex flex-wrap items-center gap-x-4 gap-y-2" role="status">
+                <p className="text-body font-medium num">
+                  {breakLeft > 0 ? `Pausa do Pomodoro: ${clockParts(breakLeft)}` : 'A pausa acabou.'}
+                </p>
+                <button
+                  type="button"
+                  className="btn btn-ink"
+                  disabled={pending}
+                  onClick={() =>
+                    startTransition(async () => {
+                      const r = await runAction(() => resumeTimer(), 'A sessão');
+                      if (!r.ok) toast(r.error, { tone: 'error' });
+                      else setBreakUntil(null);
+                    })
+                  }
+                >
+                  Voltar ao foco
+                </button>
+              </div>
+            ) : null}
+
+            <div className="mt-4 flex flex-wrap gap-3">
+              {n.capped || n.awaiting || (breakLeft !== null && paused) ? null : paused ? (
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  disabled={pending}
+                  onClick={() => act(() => resumeTimer(), 'A sessão')}
+                >
+                  Continuar
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  disabled={pending}
+                  onClick={() => act(() => pauseTimer(), 'A pausa')}
+                >
+                  Pausar
+                </button>
+              )}
               <button
                 type="button"
-                className="btn btn-ink num"
+                className="btn btn-ink"
                 disabled={pending}
-                onClick={() => act(() => confirmPresence(true), 'A confirmação', `${gapMin} min contados`)}
+                onClick={() => onStopSession({ creditedMs: n.credited, pendingMs: n.pending })}
               >
-                Contar {gapMin} min
-              </button>
-              <button
-                type="button"
-                className="btn btn-outline"
-                disabled={pending}
-                onClick={() => act(() => confirmPresence(false), 'A confirmação')}
-              >
-                Não contar
+                Encerrar sessão
               </button>
             </div>
           </div>
-        ) : breakLeft !== null && paused ? (
-          <div className="band mt-3 flex flex-wrap items-center gap-x-4 gap-y-2" role="status">
-            <p className="text-body font-medium num">
-              {breakLeft > 0 ? `Pausa do Pomodoro: ${clockParts(breakLeft)}` : 'A pausa acabou.'}
-            </p>
-            <button
-              type="button"
-              className="btn btn-ink"
-              disabled={pending}
-              onClick={() =>
-                startTransition(async () => {
-                  const r = await runAction(() => resumeTimer(), 'A sessão');
-                  if (!r.ok) toast(r.error, { tone: 'error' });
-                  else setBreakUntil(null);
-                })
-              }
-            >
-              Voltar ao foco
-            </button>
-          </div>
-        ) : null}
-
-        <div className="mt-4 flex flex-wrap gap-3">
-          {n.capped || n.awaiting || (breakLeft !== null && paused) ? null : paused ? (
-            <button
-              type="button"
-              className="btn btn-outline"
-              disabled={pending}
-              onClick={() => act(() => resumeTimer(), 'A sessão')}
-            >
-              Continuar
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="btn btn-outline"
-              disabled={pending}
-              onClick={() => act(() => pauseTimer(), 'A pausa')}
-            >
-              Pausar
-            </button>
-          )}
-          <button
-            type="button"
-            className="btn btn-outline font-bold"
-            disabled={pending}
-            onClick={() => onStopSession({ creditedMs: n.credited, pendingMs: n.pending })}
-          >
-            Encerrar sessão
-          </button>
-          {paused && !n.awaiting && breakLeft === null ? (
-            <p className="self-center text-small text-muted">Sessão pausada.</p>
-          ) : null}
         </div>
       </section>
     );
   }
 
   return (
-    <section aria-labelledby="hoje-titulo" className="min-w-0">
-      <h2 id="hoje-titulo" className="font-gothic text-title font-bold">
-        {title}
-      </h2>
-      <p className="mt-2 text-lead font-medium">{statusSentence(state)}</p>
-      <div className="mt-4">
-        <StudyRail minutes={todayMinutes} />
-      </div>
-      <div className="mt-1 flex flex-wrap items-center gap-x-6 gap-y-3">
-        <button type="button" className="btn btn-primary" disabled={pending} onClick={studyNow}>
-          Estudar agora
-        </button>
-        <div className="min-w-0">
-          <p className="text-body">
-            {next ? (
-              <>
-                Próxima aula: <span className="font-bold">{lessonName(next.title)}</span>{' '}
-                <span className="num">({minutesLabel(next.minutes)})</span>
-              </>
-            ) : (
-              'A fila de cursos acabou. O timer conta mesmo assim.'
-            )}
+    <section aria-labelledby="hoje-titulo" className="card">
+      {head}
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+        <RingMeter
+          value={todayMinutes}
+          max={GOAL}
+          size={156}
+          stroke={14}
+          label={`${todayMinutes} de ${GOAL} minutos de estudo hoje`}
+        >
+          <span className="figure text-[2.5rem] leading-10">{todayMinutes}</span>
+          <span className="text-small text-muted num">de {GOAL} min</span>
+          {todayMinutes >= GOAL ? (
+            <span className="mt-0.5 text-micro font-bold text-ink">meta cumprida</span>
+          ) : null}
+        </RingMeter>
+
+        <div className="min-w-0 flex-1">
+          <p className="text-lead font-medium">{statusSentence(state)}</p>
+          <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-3">
+            <button type="button" className="btn btn-primary" disabled={pending} onClick={studyNow}>
+              Estudar agora
+            </button>
+            <label className="inline-flex cursor-pointer items-center gap-2 text-small text-muted">
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-[var(--text)]"
+                checked={pomodoro}
+                onChange={(e) => setPomodoro(e.target.checked)}
+              />
+              Pomodoro (25 min de foco e 5 de pausa)
+            </label>
+          </div>
+          <p className="mt-3 flex items-start gap-2 text-body">
+            <span className="mt-0.5 text-muted" aria-hidden="true">
+              <BookIcon size={18} />
+            </span>
+            <span className="min-w-0">
+              {next ? (
+                <>
+                  <span className="text-muted">Próxima aula: </span>
+                  <span className="font-bold">{lessonName(next.title)}</span>{' '}
+                  <span className="text-muted num">({minutesLabel(next.minutes)})</span>
+                </>
+              ) : (
+                'A fila de cursos acabou. O timer conta mesmo assim.'
+              )}
+            </span>
           </p>
-          <label className="mt-1 inline-flex cursor-pointer items-center gap-2 text-small text-muted">
-            <input
-              type="checkbox"
-              className="h-4 w-4 accent-[var(--text)]"
-              checked={pomodoro}
-              onChange={(e) => setPomodoro(e.target.checked)}
-            />
-            Pomodoro: 25 min de foco e 5 de pausa
-          </label>
         </div>
       </div>
-      <div className="mt-4 flex flex-wrap gap-3">
-        <button
-          type="button"
-          className="btn btn-outline"
-          disabled={pending}
-          onClick={() => act(() => addGym({ day: state.today }), 'O treino', 'Treino marcado')}
-        >
-          Marcar treino
-        </button>
-        <button
-          type="button"
-          className="btn btn-outline"
-          onClick={() => onOpenCardio(state.today)}
-        >
-          Marcar cardio
-        </button>
+
+      <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="tile flex-wrap">
+          <span className={gymToday > 0 ? 'text-ink' : 'text-muted'} aria-hidden="true">
+            <HammerSolidIcon size={28} filled={gymToday > 0} />
+          </span>
+          <div className="min-w-[9.5rem] flex-1">
+            <p className="text-body font-bold">Academia</p>
+            <p className="text-small text-muted num">
+              {week ? `${Math.min(week.gym, week.gymTarget)} de ${week.gymTarget} na semana` : 'Fora da temporada'}
+              {gymToday > 0 ? ` (${gymToday} hoje)` : ''}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="btn btn-outline ml-auto"
+            disabled={pending}
+            onClick={() => act(() => addGym({ day: state.today }), 'O treino', 'Treino marcado')}
+          >
+            Marcar treino
+          </button>
+        </div>
+        <div className="tile flex-wrap">
+          <span className={cardioToday > 0 ? 'text-[var(--heat-1)]' : 'text-muted'} aria-hidden="true">
+            <HeartIcon size={28} filled={cardioToday > 0} />
+          </span>
+          <div className="min-w-[9.5rem] flex-1">
+            <p className="text-body font-bold">Cardio</p>
+            <p className="text-small text-muted num">
+              {week ? `${Math.min(week.cardio, week.cardioTarget)} de ${week.cardioTarget} na semana` : 'Fora da temporada'}
+              {cardioToday > 0 ? ` (${cardioToday} hoje)` : ''}
+            </p>
+          </div>
+          <button type="button" className="btn btn-outline ml-auto" onClick={() => onOpenCardio(state.today)}>
+            Marcar cardio
+          </button>
+        </div>
       </div>
     </section>
   );

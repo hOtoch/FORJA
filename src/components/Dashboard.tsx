@@ -1,7 +1,8 @@
 'use client';
 
-// O painel (DESIGN.md, seção 5): cabeçalho, a barra no alto, "Hoje" ao lado do chefe
-// e a faixa de baixo com personagem, nota, Fundo, cursos e baús. Depende só do GameState
+// O painel (revisão 2 do DESIGN.md): cartões agrupados por pergunta. Primeiro o que fazer
+// hoje e a semana; depois a temporada; o personagem, o Fundo e a nota; o estudo e os cursos;
+// por fim os baús. Depende só do GameState
 // (e, opcionalmente, dos registros, para a gaveta listar sessões e oferecer "Desfazer").
 
 import { useState } from 'react';
@@ -20,7 +21,8 @@ import { Dialog, ToastProvider } from './feedback';
 import { FundPanel } from './FundPanel';
 import { GradeMark } from './GradeMark';
 import { Header } from './Header';
-import { SeasonBar } from './SeasonBar';
+import { SeasonCard } from './SeasonCard';
+import { StudyChartCard } from './StudyChartCard';
 import { TodayPanel, type StopInfo } from './TodayPanel';
 
 type DialogState =
@@ -46,48 +48,53 @@ function DashboardBody({ state, records }: { state: GameState; records?: ForjaRe
   const close = () => setDialog(null);
 
   return (
-    <div className="mx-auto w-full max-w-[1776px] px-4 pb-6 pt-4 md:px-8 desk:px-12 desk:pb-4 desk:pt-5">
+    <div className="mx-auto w-full max-w-[1440px] px-4 pb-10 pt-3 md:px-8">
       <Header
         state={state}
         onRegisterStudy={() => setDialog({ kind: 'study', day: state.today })}
         onUseBreak={() => setDialog({ kind: 'break' })}
       />
 
-      <main>
-        <h2 className="sr-only">Barra da temporada</h2>
-        <div className="mt-4 desk:mt-3">
-          <SeasonBar state={state} onSelectDay={setSelectedDate} />
+      <main className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-12">
+        {/* 1. o que fazer hoje e a semana */}
+        <div className="lg:col-span-7">
+          <TodayPanel
+            state={state}
+            onOpenCardio={(day) => setDialog({ kind: 'cardio', day })}
+            onStopSession={(info) => setDialog({ kind: 'stop', info })}
+          />
+        </div>
+        <div className="lg:col-span-5">
+          <BossPanel state={state} />
         </div>
 
-        <div className="mt-6 grid grid-cols-1 gap-x-12 gap-y-10 md:mt-3 md:grid-cols-2 lg:grid-cols-12">
-          <div className="lg:col-span-7 desk:min-h-[15rem]">
-            <TodayPanel
-              state={state}
-              onOpenCardio={(day) => setDialog({ kind: 'cardio', day })}
-              onStopSession={(info) => setDialog({ kind: 'stop', info })}
-            />
-          </div>
-          <div className="lg:col-span-5">
-            <BossPanel state={state} />
-          </div>
+        {/* 2. a temporada inteira */}
+        <div className="lg:col-span-12">
+          <SeasonCard state={state} onSelectDay={setSelectedDate} />
         </div>
 
-        <div className="mt-10 grid grid-cols-1 gap-x-8 gap-y-10 md:grid-cols-2 lg:grid-cols-6 desk:mt-8 desk:grid-cols-5">
-          <div className="lg:col-span-2 desk:col-span-1">
-            <CharacterPanel state={state} />
-          </div>
-          <div className="lg:col-span-2 desk:col-span-1">
-            <GradeMark state={state} />
-          </div>
-          <div className="lg:col-span-2 desk:col-span-1">
-            <FundPanel state={state} onOpenClient={() => setDialog({ kind: 'client' })} />
-          </div>
-          <div className="lg:col-span-3 desk:col-span-1">
-            <CoursesPanel state={state} />
-          </div>
-          <div className="lg:col-span-3 desk:col-span-1">
-            <ChestsPanel state={state} />
-          </div>
+        {/* 3. o progresso do personagem */}
+        <div className="lg:col-span-4">
+          <CharacterPanel state={state} />
+        </div>
+        <div className="lg:col-span-4">
+          <FundPanel state={state} onOpenClient={() => setDialog({ kind: 'client' })} />
+        </div>
+        <div className="lg:col-span-4">
+          <GradeMark state={state} />
+        </div>
+
+        {/* 4. estudo e cursos */}
+        <div className="lg:col-span-7">
+          <StudyChartCard state={state} />
+        </div>
+        <div className="lg:col-span-5">
+          <CoursesPanel state={state} />
+        </div>
+
+        {/* 5. recompensas */}
+        <div className="lg:col-span-12">
+          <ChestsPanel state={state} />
         </div>
       </main>
 

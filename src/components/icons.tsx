@@ -132,3 +132,45 @@ export function MedalIcon(p: IconProps) {
     </Svg>
   );
 }
+
+/** Livro aberto: estudo e Inteligência. */
+export function BookIcon({ filled = false, ...p }: IconProps & { filled?: boolean }) {
+  return (
+    <Svg {...p}>
+      <path d="M12 6.2C10 4.8 7.4 4.3 3.5 4.5v13.2c3.9-.2 6.5.3 8.5 1.8 2-1.5 4.6-2 8.5-1.8V4.5c-3.9-.2-6.5.3-8.5 1.7z" fill={filled ? 'currentColor' : 'none'} />
+      <path d="M12 6.2v13.3" stroke={filled ? 'var(--surface)' : 'currentColor'} />
+    </Svg>
+  );
+}
+
+/** Coração: cardio e Vigor. */
+export function HeartIcon({ filled = false, ...p }: IconProps & { filled?: boolean }) {
+  return (
+    <Svg {...p}>
+      <path
+        d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.2a4.3 4.3 0 0 1 7.5 2.6C19.5 15.4 12 20 12 20z"
+        fill={filled ? 'currentColor' : 'none'}
+      />
+    </Svg>
+  );
+}
+
+/** Martelo cheio, para marcar treino feito. */
+export function HammerSolidIcon({ filled = false, ...p }: IconProps & { filled?: boolean }) {
+  return (
+    <Svg {...p}>
+      <path d="m13.6 3.4 7 7-2.7 2.7-7-7z" fill={filled ? 'currentColor' : 'none'} />
+      <path d="M12.4 9.2 4.1 17.5a1.65 1.65 0 0 0 2.35 2.35l8.3-8.3" />
+    </Svg>
+  );
+}
+
+/** Ampulheta: tempo restante. */
+export function HourglassIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M6.5 3.5h11M6.5 20.5h11" />
+      <path d="M7.5 3.5c0 4.5 4.5 5.5 4.5 8.5s-4.5 4-4.5 8.5M16.5 3.5c0 4.5-4.5 5.5-4.5 8.5s4.5 4 4.5 8.5" />
+    </Svg>
+  );
+}

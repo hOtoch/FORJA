@@ -3,6 +3,12 @@
 Sistema visual do Forja. Escrito com a skill `frontend-design`, antes de qualquer tela existir. Vale para o protótipo e para o app. Quando um componente novo surgir, ele segue estas regras ou este documento muda primeiro.
 
 > **Revisão de 03/10/2026:** o usuário pediu ambientação de **forja medieval de RPG**. A estrutura continua a mesma: a barra de 80 dias, a escala de calor e a marca do ferreiro. Mudaram as fontes, os fundos (pergaminho e fuligem), o azul (agora heráldico) e alguns ícones.
+>
+> **Revisão 2, de 05/10/2026:** o usuário achou o painel confuso, embolado e pouco visual. Mudanças:
+> - As informações foram agrupadas em **cartões de pergaminho**, um por pergunta, em vez de regiões soltas sobre o fundo.
+> - O painel agora segue uma **ordem de prioridade**, e a página rola.
+> - Entraram **ilustrações** (o ferreiro, os chefes da semana, os baús e a bolsa do Fundo) e **gráficos**: o anel da meta do dia, a barra de vida do chefe, a semana em ícones, medidores e as colunas dos últimos 14 dias.
+> - Os gráficos seguem a skill `dataviz`.
 
 ---
 
@@ -24,7 +30,7 @@ O vocabulário visual sai do ofício do ferreiro medieval:
 2. **Calor é informação.** As cores do metal aquecido marcam trabalho feito e nunca servem de enfeite. Laranja quer dizer "você esquentou o metal", não "cor da marca".
 3. **Metal frio, não vergonha.** Um dia sem estudo aparece como ferro frio, cinza e sem brilho. Não há vermelho de erro, alerta ou culpa.
 4. **Uma próxima ação, dita em palavras simples.** A página sempre deixa claro o próximo passo: "Estudar agora", "Marcar treino".
-5. **Silêncio em volta.** As regiões são texto bem hierarquizado sobre o fundo, sem caixas, sombras ou degradês. Só a barra, a marca da nota e o timer têm tratamento de material.
+5. **Um cartão por pergunta.** Cada cartão responde a uma pergunta só ("o que faço hoje?", "como vai a semana?", "quanto já juntei?"). Os cartões são folhas de pergaminho mais claras, com borda fina e cantos de 14 px, sem sombra cinza e sem degradê. Dentro deles, um número ou um desenho é a coisa principal, e o texto explica.
 
 ## 3. Cor
 
@@ -147,50 +153,42 @@ O tema segue o Windows por padrão. Hoje o Windows está no tema claro, então e
 
 ## 5. Layout
 
-**Conceito:** uma bancada. No alto, a barra da temporada ocupa toda a largura, como o metal sobre a bigorna. Logo abaixo, a região "Hoje" fica do lado do chefe da semana. Por último, uma faixa baixa com o resto do jogo. Tudo alinhado à esquerda, numa grade de 12 colunas. Os números ficam alinhados à direita quando estão em coluna.
-
-**Painel em 1920 × 919, sem rolagem:**
+**Conceito:** o painel é lido de cima para baixo, na ordem das perguntas do dia. Grade de 12 colunas, conteúdo com até 1440 px, cartões separados por 20 px. A página rola: o que decide o dia fica na primeira dobra (1920 × 919), e o resto vem logo abaixo.
 
 ```
- Forja                                                     Registrar   Cursos   Fundo   Histórico
- Temporada 1: Operação Réveillon                                        Dia 12 de 80, faltam 69
- ╭──────────────────────────────────────────────────────────────────────────────────────────────╮
- │ ▆▆▆▆▆ ▆▆▒▒ ▓░▓▓▓▓▓ ░░░░░░░ ░░░░░░░ ░░░░░░░ ░░░░░░░ ░░░░░░░ ░░░░░░░ ░░░░░░░ ░░░░░░░ ░░░░░░░ ░░░ │
- ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
-   outubro                     novembro          metade                 dezembro    fim, Réveillon em 28/12
-
- Hoje, segunda, 12 de outubro                          Chefe da semana 2
- Faltam 25 min para a meta de hoje.                    Estudo     3 de 5 dias   ■■■□□
- ▰▰▰▱▱▱│▱▱▱▱▱▱   35 de 60 min                          Academia   2 de 4        ■■□□
- [ Estudar agora ]  Próxima aula: Techspec e PRD (5 min)   Cardio     3 de 5        ■■■□◇
- Marcar treino     Marcar cardio                       Faltam 2 treinos e o supercardio.
-
- Nível 4            Nota prevista     Fundo Réveillon      Cursos                     Baús
- Malhador           ┌╌╌╌╌╌┐           R$ 210               Desenvolvimento assist.   ▢ Primeiro chefe
- 1.240 de 1.500 XP  ╎  A  ╎           de R$ 1.500          ▰▰▰▱▱▱  até 20/10         ▢ 21 dias seguidos
- Inteligência  620  └╌╌╌╌╌┘           ▰▰▱▱▱▱▱▱▱▱           Python Full AI (prof.)    ▢ Metade com A
- Força         360  Estudo     92%    Depositar R$ 130     ▱▱▱▱▱▱  até 13/11         ▢ 50 horas
- Vigor         260  Academia   88%    da semana 2          Python Full AI (acad.)    ▢ Nota em 23/12
- Escudos  ◆ ◇       Cardio     84%    Marcar como depositado  ▱▱▱▱▱▱  até 02/12
+ Forja   Painel  Cursos                                   Usar folga (2)  [Registrar estudo]  ⋯
+ ┌─ Hoje ─────────────────────────────────┐ ┌─ Chefe da semana 3 ─────────────┐
+ │  ╭───╮  Faltam 25 min para a meta.     │ │ (retrato) Lich da Procrastinação │
+ │ │35 │  [ Estudar agora ]  □ Pomodoro   │ │ vida ████████░░░  9 de 16        │
+ │  ╰───╯  Próxima aula: Teste de carga    │ │ seg ter hoje qua … (livro,       │
+ │ [martelo Academia  Marcar treino]       │ │  martelo e coração por dia)      │
+ │ [coração Cardio    Marcar cardio]       │ │ Estudo 2 de 7  Academia 3 de 4 … │
+ └─────────────────────────────────────────┘ └──────────────────────────────────┘
+ ┌─ Operação Réveillon   Dia 17 de 80     (Sequência) (Escudos) (63 dias até 23/12) ─┐
+ │ ▆▆▆▆▆ ▒▒ ▓▓▓▓▓ ░░░░░░░ … a barra de 80 dias …                                     │
+ └─────────────────────────────────────────────────────────────────────────────────────┘
+ ┌─ Personagem ────────┐ ┌─ Fundo Réveillon ───┐ ┌─ Nota prevista ──────┐
+ │ (ferreiro) Nível 6  │ │ (bolsa) R$ 240      │ │ ┌╌╌┐ Estudo   ▬▬▬ 92% │
+ │ XP ▬▬▬▬▬▬           │ │ ▬▬▬ de R$ 1.500     │ │ ╎A ╎ Academia ▬▬▬ 88% │
+ │ Int / Força / Vigor │ │ [Marcar depositado] │ │ └╌╌┘ Cardio   ▬▬▬ 90% │
+ └─────────────────────┘ └─────────────────────┘ └──────────────────────┘
+ ┌─ Estudo dos últimos 14 dias ───────────┐ ┌─ Cursos ─────────────────────────┐
+ │ colunas por dia com a linha da meta    │ │ (anel) curso atual, próxima aula │
+ └────────────────────────────────────────┘ └──────────────────────────────────┘
+ ┌─ Baús ──────────────────────────────────────────────────────────────────────────────┐
+ │ (baú) Primeiro chefe   (baú) 21 dias   (baú) Metade com A   (baú) 50 h   (baú) Nota │
+ └─────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-- **Larguras:** conteúdo com até 1680 px e margens laterais de 120 px em 1920. A barra usa a largura toda. "Hoje" ocupa 7 colunas e o chefe, 5. A faixa de baixo tem 5 regiões de largura igual.
-- **Alturas aproximadas:** cabeçalho 48, barra com legendas 128, linha do meio 280, faixa de baixo 260, mais os espaços. Cabe em 919 px.
-- **Mais estreito:**
-  - de 1024 a 1439 px, a faixa de baixo quebra em 3 + 2;
-  - de 768 a 1023 px, tudo fica em duas colunas;
-  - abaixo de 768 px, é uma coluna só, e a barra vira uma grade de 4 linhas de 20 dias.
-- **Espaçamento:** múltiplos de 4, na série 4, 8, 12, 16, 24, 32, 48, 64. Regiões separadas por 32 ou 48 px de ar, não por linhas.
+- **Larguras na grade de 12:** Hoje 7 e chefe 5; temporada 12; personagem, Fundo e nota 4 cada; gráfico 7 e cursos 5; baús 12. Os cartões de uma mesma linha têm a mesma altura.
+- **Mais estreito:** abaixo de 1024 px, tudo vira uma coluna, na mesma ordem. Os baús ficam em 3 colunas no tablet e em 2 no celular. No celular a barra vira uma grade de 4 linhas de 20 dias, e o gráfico desenha na largura real (o texto não encolhe).
+- **Espaçamento:** múltiplos de 4. Dentro do cartão, 20 × 24 px de margem; entre cartões, 20 px.
 - **Cantos:**
-  - a barra tem 10 px nas pontas, como um lingote;
-  - segmentos, 2 px;
+  - cartões, 14 px;
+  - quadros internos (treino, cardio, depósito, baús, dias da semana), 10 px;
   - botões e campos, 6 px;
-  - a marca da nota, 8 px;
-  - as regiões não têm caixa, então não têm canto.
-- **Profundidade:** só três coisas têm sombra.
-  - A barra: um brilho de 1 px no alto (`rgba(255,255,255,.06)`) e uma sombra de 1 px embaixo (`rgba(0,0,0,.35)`).
-  - Diálogos e a gaveta do dia: `0 16px 48px rgba(16,22,28,.28)`.
-  - Mais nada.
+  - a barra, 10 px nas pontas.
+- **Profundidade:** a barra mantém o brilho e a sombra de 1 px. Diálogos, gaveta e o menu "⋯" levam sombra. Cartões não levam sombra, só a borda.
 
 ## 6. Componentes
 
@@ -353,6 +351,8 @@ Depois do primeiro plano, comparei cada escolha com o que sairia para qualquer a
   - tire um acessório.
 
 ## 12. Notas para as próximas rodadas
+
+- **Revisão 2:** os chefes são 6 retratos (ogro, goblin, lich, troll, serpente, dragão) com 12 nomes, em `src/components/bosses.ts`. São só visuais: as regras do chefe vêm do motor.
 
 - O visual da barra ainda não foi visto por você. O protótipo é o lugar de reagir: altura dos segmentos, intensidade das cores, quantidade de legenda.
 - Se a barra parecer pesada demais no tema claro, a primeira coisa a testar é diminuir a altura para 48 px, antes de mexer nas cores.

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import { Header } from '@/components/Header';
+import { ToastProvider } from '@/components/feedback';
 import { lessonName, minutesLabel, projDate } from '@/components/format';
 import { MedalIcon } from '@/components/icons';
 import { season1 } from '@/config/season1';
@@ -25,7 +26,7 @@ function CourseMap({ course, position, state }: { course: CourseProgress; positi
   const headingId = `curso-${course.slug}`;
 
   return (
-    <section aria-labelledby={headingId} className="min-w-0">
+    <section aria-labelledby={headingId} className="card">
       <h2 id={headingId} className="flex items-center gap-2 font-gothic text-title font-bold">
         {course.name}
         {course.completed ? <MedalIcon size={22} label="Curso concluído" /> : null}
@@ -97,22 +98,14 @@ function CourseMap({ course, position, state }: { course: CourseProgress; positi
 export default async function CursosPage() {
   const state = await loadGameState();
   return (
-    <div className="mx-auto w-full max-w-[1776px] px-4 pb-16 pt-4 md:px-8 desk:px-12 desk:pt-5">
-      <header className="flex items-start justify-between gap-6">
-        <div>
-          <Link href="/" className="font-gothic text-[2.5rem] leading-10 font-extrabold">
-            Forja
-          </Link>
-          <p className="mt-0.5 text-small font-medium text-muted">Temporada 1: {season1.name}</p>
-        </div>
-        <Link href="/" className="btn btn-quiet">
-          Voltar ao painel
-        </Link>
-      </header>
+    <div className="mx-auto w-full max-w-[1440px] px-4 pb-16 pt-3 md:px-8">
+      <ToastProvider>
+        <Header />
+      </ToastProvider>
       <main className="mt-8">
-        <h1 className="font-gothic text-[2.5rem] leading-10 font-extrabold">Cursos</h1>
+        <h1 className="font-gothic text-[2.25rem] leading-10 font-extrabold">Mapa dos cursos</h1>
         <p className="mt-2 max-w-[72ch] text-lead">{summary(state)}</p>
-        <div className="mt-10 grid grid-cols-1 gap-x-12 gap-y-14 lg:grid-cols-3">
+        <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-3">
           {state.courses.map((c, i) => (
             <CourseMap key={c.slug} course={c} position={i + 1} state={state} />
           ))}
