@@ -9,6 +9,14 @@ Sistema visual do Forja. Escrito com a skill `frontend-design`, antes de qualque
 > - O painel agora segue uma **ordem de prioridade**, e a página rola.
 > - Entraram **ilustrações** (o ferreiro, os chefes da semana, os baús e a bolsa do Fundo) e **gráficos**: o anel da meta do dia, a barra de vida do chefe, a semana em ícones, medidores e as colunas dos últimos 14 dias.
 > - Os gráficos seguem a skill `dataviz`.
+>
+> **Revisão 3, de 05/10/2026: pixel art.** O usuário pediu os desenhos em pixel art, com evoluções do personagem, chefes diferentes e um mapa interativo.
+> - **Como são feitos:** em `scripts/pixel/` (kit de formas em Python, paleta com luz e sombra, contorno automático), renderizados pela skill `pixel-art-gen` em `public/pixel/`. Na tela são ampliados só por múltiplos inteiros, com `image-rendering: pixelated`.
+> - **Personagem:** 6 evoluções de 32 × 32, uma por título. Aprendiz (túnica e martelinho), Malhador (avental e bandana), Ferreiro (barba e marreta), Armeiro (cota de malha, escudo e espada), Mestre ferreiro (armadura, capa e martelo de guerra) e Lenda da forja (armadura dourada, coroa e martelo em chamas). As que ainda não foram alcançadas aparecem como silhueta.
+> - **Chefes:** 12 de 32 × 32, um por semana (ver `src/components/bosses.ts`).
+> - **Itens:** baús e bolsa de 16 × 16, ícones de 12 × 12 (livro, martelo, coração, chama, escudo, ampulheta).
+> - **Mapa:** 640 × 352, a estrada da temporada da Vila da Forja ao Castelo do Réveillon, passando pela Floresta da Disciplina (outubro), pelas Montanhas do Esforço (novembro) e pelas Terras do Gelo (dezembro). A tela `/mapa` põe por cima os 80 dias (cor do calor), os chefes, os baús e o ferreiro no dia de hoje. A estrada fica em `src/config/mapa.json`, a mesma usada para desenhar a imagem.
+> - **Medalhão:** os sprites de personagem, chefe e bolsa ficam num medalhão de ferro, igual nos dois temas.
 
 ---
 

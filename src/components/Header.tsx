@@ -29,6 +29,7 @@ export function Header({ state, onRegisterStudy, onUseBreak }: Props) {
   const blocker = state ? breakBlocker(state) : null;
   const tabs = [
     { href: '/', label: 'Painel' },
+    { href: '/mapa', label: 'Mapa' },
     { href: '/cursos', label: 'Cursos' },
   ];
 

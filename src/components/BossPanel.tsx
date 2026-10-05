@@ -9,11 +9,10 @@ import { season1 } from '@/config/season1';
 import { formatBRL } from '@/lib/cardio';
 import { daysBetween, longDate, shortDate } from '@/lib/time';
 import type { DayInfo, GameState, WeekInfo } from '@/lib/types';
-import { BossArt } from './art';
 import { bossOfWeek } from './bosses';
 import { Sparks } from './feedback';
 import { joinPt, plural, WEEKDAY_SHORT } from './format';
-import { BookIcon, FlameIcon, HammerSolidIcon, HeartIcon } from './icons';
+import { Medallion, Sprite } from './pixel';
 import { Meter } from './viz';
 
 function cardioNumbers(w: WeekInfo) {
@@ -53,11 +52,28 @@ function missingSentence(state: GameState, w: WeekInfo): string {
   return `Faltam ${joinPt(missing)}, em ${daysLeft === 1 ? '1 dia' : `${daysLeft} dias`}.`;
 }
 
-function studyClass(d: DayInfo): string {
-  if (d.breakKind) return 'text-muted';
-  if (d.studyMet) return 'text-[var(--heat-2)]';
-  if (d.studyMinutes > 0) return 'text-[var(--heat-1)]';
-  return d.isFuture || d.isToday ? 'text-muted' : 'text-[var(--heat-0)]';
+/** Opacidade do ícone de estudo: cheio se cumpriu, pela metade se estudou pouco. */
+function studyOpacity(d: DayInfo): number {
+  if (d.studyMet) return 1;
+  if (d.studyMinutes > 0) return 0.55;
+  return 0.18;
+}
+
+function BossFigure({ sprite, defeated, title }: { sprite: string; defeated: boolean; title?: string }) {
+  return (
+    <span className="relative" title={title}>
+      <Medallion size={100}>
+        <Sprite name={sprite} scale={3} faded={defeated} style={{ marginBottom: 2 }} />
+      </Medallion>
+      {defeated ? (
+        <span className="pointer-events-none absolute inset-0 flex items-center justify-center" aria-hidden="true">
+          <span className="rotate-[-12deg] rounded-[4px] border-2 border-[var(--wax)] bg-[var(--surface)] px-1.5 text-small font-bold text-[var(--wax)]">
+            derrotado
+          </span>
+        </span>
+      ) : null}
+    </span>
+  );
 }
 
 function WeekStrip({ days }: { days: DayInfo[] }) {
@@ -94,18 +110,14 @@ function WeekStrip({ days }: { days: DayInfo[] }) {
                 folga
               </span>
             ) : (
-              <span className="flex flex-col items-center gap-0.5" aria-hidden="true">
-                <span className={studyClass(d)}>
-                  <BookIcon size={20} filled={d.studyMinutes > 0} />
-                </span>
-                <span className={d.gym > 0 ? 'text-ink' : 'text-muted opacity-50'}>
-                  <HammerSolidIcon size={20} filled={d.gym > 0} />
-                </span>
-                <span className={`relative ${d.cardio > 0 ? 'text-[var(--heat-1)]' : 'text-muted opacity-50'}`}>
-                  <HeartIcon size={20} filled={d.cardio > 0} />
+              <span className="flex flex-col items-center gap-1" aria-hidden="true">
+                <Sprite name="icone-livro" base={12} scale={2} style={{ opacity: studyOpacity(d) }} />
+                <Sprite name="icone-martelo" base={12} scale={2} style={{ opacity: d.gym > 0 ? 1 : 0.18 }} />
+                <span className="relative">
+                  <Sprite name="icone-coracao" base={12} scale={2} style={{ opacity: d.cardio > 0 ? 1 : 0.18 }} />
                   {d.superCardio > 0 ? (
-                    <span className="absolute -right-2 -top-1.5 text-[var(--heat-2)]">
-                      <FlameIcon size={14} />
+                    <span className="absolute -right-2.5 -top-2">
+                      <Sprite name="icone-chama" base={12} scale={1} />
                     </span>
                   ) : null}
                 </span>
@@ -139,7 +151,7 @@ export function BossPanel({ state }: { state: GameState }) {
           </h2>
         </div>
         <div className="flex items-center gap-4">
-          <BossArt kind={first.kind} size={88} />
+          <BossFigure sprite={first.sprite} defeated={false} title={first.lore} />
           <p className="text-body">
             {state.phase === 'before'
               ? `${first.name} aparece na ${longDate(season1.start)}.`
@@ -168,9 +180,10 @@ export function BossPanel({ state }: { state: GameState }) {
       </div>
 
       <div className="flex items-center gap-4">
-        <BossArt kind={boss.kind} defeated={defeated} size={88} />
+        <BossFigure sprite={boss.sprite} defeated={defeated} title={boss.lore} />
         <div className="min-w-0 flex-1">
           <p className="truncate text-lead font-bold">{boss.name}</p>
+          <p className="truncate text-small italic text-muted">{boss.lore}</p>
           <div className="mt-2 flex items-center gap-3">
             <div className="flex-1">
               <Meter

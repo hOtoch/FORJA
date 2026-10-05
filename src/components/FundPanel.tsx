@@ -7,7 +7,7 @@ import { useTransition } from 'react';
 import { confirmDeposit } from '@/app/actions';
 import { formatBRL } from '@/lib/cardio';
 import type { GameState } from '@/lib/types';
-import { PouchArt } from './art';
+import { Medallion, Sprite } from './pixel';
 import { runAction, useToast } from './feedback';
 import { WaxSealIcon } from './icons';
 import { Meter } from './viz';
@@ -37,7 +37,9 @@ export function FundPanel({ state, onOpenClient }: { state: GameState; onOpenCli
       </div>
 
       <div className="flex items-center gap-4">
-        <PouchArt size={88} />
+        <Medallion size={96} center>
+          <Sprite name="bolsa" base={16} scale={4} />
+        </Medallion>
         <div className="min-w-0 flex-1">
           <p className="flex flex-wrap items-baseline gap-x-2">
             <span className="figure text-[2rem] leading-9 text-money">{formatBRL(f.earnedCents)}</span>

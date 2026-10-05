@@ -42,3 +42,7 @@ npm-debug.log*
 
 # Worktrees dos subagentes
 .claude/worktrees/
+
+# Pixel art: JSON intermediário gerado por scripts/pixel/build.py
+scripts/pixel/.json/
+__pycache__/

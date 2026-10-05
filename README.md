@@ -64,6 +64,17 @@ Os scripts em [scripts/windows](scripts/windows) registram duas tarefas no Agend
 
 As instruções estão em [scripts/windows/README.md](scripts/windows/README.md).
 
+## Pixel art
+
+Os desenhos (personagem, chefes, baús, ícones e o mapa) são gerados por `scripts/pixel/build.py` com a skill `pixel-art-gen` e ficam em `public/pixel/`. Os PNG já estão no git; só é preciso rodar de novo para mudar algum desenho:
+
+```bash
+python scripts/pixel/build.py            # tudo
+python scripts/pixel/build.py boss mapa  # só o que começa com esses nomes
+```
+
+Precisa de Python com Pillow e do renderizador da skill em `~/.claude/skills/pixel-art-gen` (ou em `PIXEL_ART_RENDERER`).
+
 ## Como funciona por dentro
 
 - **Next.js 16** (App Router) com Server Actions, **Tailwind 4** e **Postgres no Neon**. São só duas tabelas: `records` e `kv`.

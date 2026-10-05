@@ -5,7 +5,8 @@ import { season1 } from '@/config/season1';
 import { daysBetween, longDate, shortDate } from '@/lib/time';
 import type { GameState } from '@/lib/types';
 import { plural } from './format';
-import { FlameIcon, HourglassIcon, ShieldIcon } from './icons';
+import Link from 'next/link';
+import { Sprite } from './pixel';
 import { SeasonBar } from './SeasonBar';
 
 function dayFigure(state: GameState): { big: string; small: string } {
@@ -41,20 +42,18 @@ export function SeasonCard({ state, onSelectDay }: { state: GameState; onSelectD
           </p>
         </div>
 
-        <ul className="flex flex-wrap gap-2" aria-label="Resumo da temporada">
+        <ul className="flex flex-wrap items-center gap-2" aria-label="Resumo da temporada">
           <li className="chip">
-            <span className={streak.current > 0 ? 'text-[var(--heat-2)]' : 'text-muted'} aria-hidden="true">
-              <FlameIcon size={22} />
-            </span>
+            <Sprite name="icone-chama" base={12} scale={2} faded={streak.current === 0} />
             <span>
               Sequência <b className="num">{plural(streak.current, 'dia', 'dias')}</b>
               {streak.best > streak.current ? <span className="text-muted num"> (melhor: {streak.best})</span> : null}
             </span>
           </li>
           <li className="chip">
-            <span className="flex text-focus" aria-hidden="true">
+            <span className="flex gap-0.5" aria-hidden="true">
               {Array.from({ length: season1.shields.max }, (_, i) => (
-                <ShieldIcon key={i} size={20} filled={i < streak.shields} />
+                <Sprite key={i} name={i < streak.shields ? 'icone-escudo' : 'icone-escudo-vazio'} base={12} scale={2} />
               ))}
             </span>
             <span>
@@ -62,9 +61,7 @@ export function SeasonCard({ state, onSelectDay }: { state: GameState; onSelectD
             </span>
           </li>
           <li className="chip">
-            <span className="text-muted" aria-hidden="true">
-              <HourglassIcon size={20} />
-            </span>
+            <Sprite name="icone-ampulheta" base={12} scale={2} />
             <span className="num">
               {left === null
                 ? state.phase === 'before'
@@ -81,6 +78,11 @@ export function SeasonCard({ state, onSelectDay }: { state: GameState; onSelectD
       <div className="mt-5">
         <SeasonBar state={state} onSelectDay={onSelectDay} />
       </div>
+      <p className="mt-1 text-right">
+        <Link href="/mapa" className="link text-small">
+          Ver o caminho no mapa
+        </Link>
+      </p>
     </section>
   );
 }

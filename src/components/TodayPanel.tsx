@@ -9,7 +9,7 @@ import { gameDay, longDate } from '@/lib/time';
 import type { ActionResult, GameState, NextLesson, TimerView } from '@/lib/types';
 import { runAction, useToast } from './feedback';
 import { clockParts, clockSpoken, courseBySlug, lessonName, minutesLabel, timeHM } from './format';
-import { BookIcon, HammerSolidIcon, HeartIcon } from './icons';
+import { Sprite } from './pixel';
 import { RingMeter } from './viz';
 
 const MIN = 60_000;
@@ -226,7 +226,7 @@ export function TodayPanel({ state, onOpenCardio, onStopSession }: Props) {
           <div className="min-w-0 flex-1">
             <p className="text-lead font-bold">{course?.name ?? 'Estudo livre'}</p>
             <p className="mt-0.5 flex items-center gap-2 text-body text-muted">
-              <BookIcon size={18} />
+              <Sprite name="icone-livro" base={12} scale={2} />
               {lesson ? `Aula: ${lessonName(lesson.title)}` : 'Sem próxima aula na fila'}
             </p>
             <p className="mt-1 text-small text-muted num">
@@ -366,8 +366,8 @@ export function TodayPanel({ state, onOpenCardio, onStopSession }: Props) {
             </label>
           </div>
           <p className="mt-3 flex items-start gap-2 text-body">
-            <span className="mt-0.5 text-muted" aria-hidden="true">
-              <BookIcon size={18} />
+            <span aria-hidden="true">
+              <Sprite name="icone-livro" base={12} scale={2} />
             </span>
             <span className="min-w-0">
               {next ? (
@@ -386,9 +386,7 @@ export function TodayPanel({ state, onOpenCardio, onStopSession }: Props) {
 
       <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="tile flex-wrap">
-          <span className={gymToday > 0 ? 'text-ink' : 'text-muted'} aria-hidden="true">
-            <HammerSolidIcon size={28} filled={gymToday > 0} />
-          </span>
+          <Sprite name="icone-martelo" base={12} scale={3} style={{ opacity: gymToday > 0 ? 1 : 0.45 }} />
           <div className="min-w-[9.5rem] flex-1">
             <p className="text-body font-bold">Academia</p>
             <p className="text-small text-muted num">
@@ -406,9 +404,7 @@ export function TodayPanel({ state, onOpenCardio, onStopSession }: Props) {
           </button>
         </div>
         <div className="tile flex-wrap">
-          <span className={cardioToday > 0 ? 'text-[var(--heat-1)]' : 'text-muted'} aria-hidden="true">
-            <HeartIcon size={28} filled={cardioToday > 0} />
-          </span>
+          <Sprite name="icone-coracao" base={12} scale={3} style={{ opacity: cardioToday > 0 ? 1 : 0.45 }} />
           <div className="min-w-[9.5rem] flex-1">
             <p className="text-body font-bold">Cardio</p>
             <p className="text-small text-muted num">

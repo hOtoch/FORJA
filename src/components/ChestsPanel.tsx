@@ -4,7 +4,7 @@
 import { season1 } from '@/config/season1';
 import { shortDate } from '@/lib/time';
 import type { ChestConfig, ChestState, GameState } from '@/lib/types';
-import { ChestArt } from './art';
+import { Sprite } from './pixel';
 import { fmtInt } from './format';
 import { Meter } from './viz';
 
@@ -59,7 +59,12 @@ export function ChestsPanel({ state }: { state: GameState }) {
                 c.state === 'opened' ? 'border-[var(--heat-3)] bg-bg' : 'border-line bg-bg'
               }`}
             >
-              <ChestArt state={c.state} size={68} />
+              <Sprite
+                name={c.state === 'opened' ? 'bau-aberto' : 'bau-fechado'}
+                base={16}
+                scale={4}
+                faded={c.state === 'failed'}
+              />
               <p className="mt-1 text-body font-bold">
                 <span className="sr-only">{status}: </span>
                 {SHORT[cfg.kind]}

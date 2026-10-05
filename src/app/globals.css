@@ -758,3 +758,24 @@ body::before {
     display: none;
   }
 }
+
+/* ---------- pixel art (revisão 3) ---------- */
+
+/* sobe e desce 2 px em dois quadros, como sprite de jogo */
+@keyframes forja-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+.forja-bob {
+  animation: forja-bob 1.2s steps(1, end) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .forja-bob {
+    animation: none;
+  }
+}

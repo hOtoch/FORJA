@@ -3,17 +3,14 @@
 
 import type { ReactNode } from 'react';
 import type { GameState } from '@/lib/types';
-import { SmithArt } from './art';
 import { fmtInt } from './format';
-import { BookIcon, HammerSolidIcon, HeartIcon } from './icons';
+import { heroTier, Medallion, nextHeroTier, Sprite } from './pixel';
 import { Meter } from './viz';
 
 function Attr({ icon, name, value, max }: { icon: ReactNode; name: string; value: number; max: number }) {
   return (
-    <div className="grid grid-cols-[20px_6.5rem_minmax(0,1fr)_3.5rem] items-center gap-x-2.5">
-      <span className="text-muted" aria-hidden="true">
-        {icon}
-      </span>
+    <div className="grid grid-cols-[24px_6.5rem_minmax(0,1fr)_3.5rem] items-center gap-x-2.5">
+      <span aria-hidden="true">{icon}</span>
       <span className="text-small">{name}</span>
       <Meter value={value} max={max} size="sm" label={`${name}: ${fmtInt(value)} XP`} />
       <span className="text-right text-small font-bold num">{fmtInt(value)}</span>
@@ -26,6 +23,8 @@ export function CharacterPanel({ state }: { state: GameState }) {
   const span = xp.nextLevelXp - xp.levelStartXp;
   const into = xp.total - xp.levelStartXp;
   const top = Math.max(1, xp.byAttr.inteligencia, xp.byAttr.forca, xp.byAttr.vigor);
+  const tier = heroTier(xp.level);
+  const next = nextHeroTier(xp.level);
 
   return (
     <section aria-labelledby="personagem-titulo" className="card">
@@ -38,7 +37,9 @@ export function CharacterPanel({ state }: { state: GameState }) {
 
       <div className="flex items-center gap-4">
         <div className="relative">
-          <SmithArt size={88} />
+          <Medallion size={104}>
+            <Sprite name={tier.sprite} scale={3} alt={`Seu ferreiro: ${tier.title}`} style={{ marginBottom: 2 }} />
+          </Medallion>
           <span
             className="absolute -bottom-1 -right-1 flex h-9 min-w-9 items-center justify-center rounded-full border-2 border-surface bg-ink px-1.5 text-body font-bold text-bg num"
             aria-hidden="true"
@@ -62,13 +63,23 @@ export function CharacterPanel({ state }: { state: GameState }) {
           <p className="mt-1 text-small text-muted num">
             Faltam {fmtInt(xp.nextLevelXp - xp.total)} XP para o nível {xp.level + 1}
           </p>
+          {next ? (
+            <p className="mt-2 flex items-center gap-2 text-small">
+              <Sprite name={next.sprite} scale={1} locked />
+              <span>
+                Próxima evolução: <b>{next.title}</b>, no nível {next.minLevel}
+              </span>
+            </p>
+          ) : (
+            <p className="mt-2 text-small font-bold">Evolução máxima alcançada.</p>
+          )}
         </div>
       </div>
 
       <div className="mt-4 space-y-2">
-        <Attr icon={<BookIcon size={20} />} name="Inteligência" value={xp.byAttr.inteligencia} max={top} />
-        <Attr icon={<HammerSolidIcon size={20} />} name="Força" value={xp.byAttr.forca} max={top} />
-        <Attr icon={<HeartIcon size={20} />} name="Vigor" value={xp.byAttr.vigor} max={top} />
+        <Attr icon={<Sprite name="icone-livro" base={12} scale={2} />} name="Inteligência" value={xp.byAttr.inteligencia} max={top} />
+        <Attr icon={<Sprite name="icone-martelo" base={12} scale={2} />} name="Força" value={xp.byAttr.forca} max={top} />
+        <Attr icon={<Sprite name="icone-coracao" base={12} scale={2} />} name="Vigor" value={xp.byAttr.vigor} max={top} />
       </div>
     </section>
   );
