@@ -137,7 +137,7 @@ export function SeasonMap({ state }: { state: GameState }) {
           {mapa.regions.map((r) => (
             <span
               key={r.label}
-              className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-[4px] border border-[#2b241e] bg-[#f3ecdd] px-2 py-0.5 font-gothic text-[clamp(0.7rem,1.3vw,1.05rem)] font-bold text-[#2b241e]"
+              className="pointer-events-none absolute hidden -translate-x-1/2 -translate-y-1/2 whitespace-nowrap sm:block rounded-[4px] border border-[#2b241e] bg-[#f3ecdd] px-2 py-0.5 font-gothic text-[clamp(0.7rem,1.3vw,1.05rem)] font-bold text-[#2b241e]"
               style={{ left: `${(r.x / W) * 100}%`, top: `${(r.y / H) * 100}%` }}
             >
               {r.label}
