@@ -170,6 +170,17 @@ describe('getStore', () => {
     expect(getStore()).toBe(store);
   });
 
+  it('FORJA_DATA_FILE escolhe um arquivo dentro de .data', () => {
+    vi.stubEnv('DATABASE_URL', '');
+    vi.stubEnv('NODE_ENV', 'development');
+    vi.stubEnv('FORJA_DATA_FILE', '.data/demo.json');
+    const demo = getStore();
+    vi.stubEnv('FORJA_DATA_FILE', '../fora/demo.json');
+    expect(getStore()).toBe(demo);
+    vi.stubEnv('FORJA_DATA_FILE', '');
+    expect(getStore()).not.toBe(demo);
+  });
+
   it('com DATABASE_URL usa o Neon (sem conectar ao criar)', () => {
     vi.stubEnv('DATABASE_URL', 'postgresql://user:pass@example.neon.tech/forja?sslmode=require');
     vi.stubEnv('NODE_ENV', 'production');
