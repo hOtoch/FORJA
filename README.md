@@ -47,13 +47,15 @@ npm run build
 1. Crie o projeto na Vercel importando este repositório.
 2. Em **Storage**, adicione o **Neon** (plano gratuito). A Vercel cria a variável `DATABASE_URL`.
 3. Em **Settings → Environment Variables**, defina `FORJA_PASSWORD`, `FORJA_SECRET` e `FORJA_STATUS_TOKEN`.
-4. Crie as tabelas uma vez, com a `DATABASE_URL` do Neon no `.env.local`:
+4. Faça o deploy e entre com a senha. As tabelas são criadas sozinhas no primeiro acesso.
+
+   Se preferir criar antes, coloque a `DATABASE_URL` do Neon no `.env.local` e rode:
 
    ```bash
    npm run db:setup
    ```
 
-5. Faça o deploy e entre com a senha.
+Se aparecer a tela "A forja não acendeu", a mensagem completa do erro está em Vercel → Logs. O motivo mais comum é o Neon não estar ligado ao projeto, ou a variável ter sido criada depois do deploy (aí é preciso fazer um novo deploy).
 
 ## Abrir sozinho todo dia (Windows)
 

@@ -1,11 +1,11 @@
 // Armazenamento do Forja: registros de fatos (`records`) e o timer em andamento (`kv['timer']`).
 // Dois adaptadores com a mesma interface (data-model.md, "Armazenamento"):
-// - Neon (Postgres) quando há DATABASE_URL;
+// - Neon (Postgres) quando há DATABASE_URL; num banco novo, cria as tabelas sozinho no primeiro uso;
 // - arquivo JSON local (.data/forja.json) quando não há, só fora de produção.
 
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { neon } from '@neondatabase/serverless';
+import { neon, type NeonQueryFunction } from '@neondatabase/serverless';
 import type { ForjaRecord, TimerState } from './types';
 
 export interface Store {
@@ -53,41 +53,91 @@ function rowToRecord(row: RecordRow): ForjaRecord {
   } as ForjaRecord;
 }
 
-export function createNeonStore(databaseUrl: string): Store {
-  const sql = neon(databaseUrl);
+type Sql = NeonQueryFunction<false, false>;
+
+/** Postgres: "relation does not exist" (tabela ainda não criada). */
+const UNDEFINED_TABLE = '42P01';
+
+/** Cria as tabelas do Forja; pode rodar quantas vezes quiser. O mesmo SQL de scripts/db-setup.mjs. */
+async function createSchema(sql: Sql): Promise<void> {
+  await sql`
+    create table if not exists records (
+      id          text primary key,
+      season_id   text not null,
+      kind        text not null,
+      day         date not null,
+      data        jsonb not null,
+      created_at  timestamptz not null default now()
+    )
+  `;
+  await sql`create index if not exists records_season_day on records (season_id, day)`;
+  await sql`
+    create table if not exists kv (
+      key    text primary key,
+      value  jsonb not null
+    )
+  `;
+}
+
+export function createNeonStore(databaseUrl: string, makeSql: (url: string) => Sql = (url) => neon(url)): Store {
+  const sql = makeSql(databaseUrl);
+  let schema: Promise<void> | null = null;
+
+  // Banco recém-criado no Neon ainda não tem as tabelas: na primeira consulta que falhar por isso,
+  // cria as tabelas (uma vez só, mesmo com consultas em paralelo) e repete a consulta.
+  async function run<T>(query: () => Promise<T>): Promise<T> {
+    try {
+      return await query();
+    } catch (err) {
+      if ((err as { code?: string } | null)?.code !== UNDEFINED_TABLE) throw err;
+      schema ??= createSchema(sql).catch((e: unknown) => {
+        schema = null;
+        throw e;
+      });
+      await schema;
+      return query();
+    }
+  }
+
   return {
     async listRecords(seasonId) {
-      const rows = (await sql`
-        select id, season_id, kind, to_char(day, 'YYYY-MM-DD') as day, data, created_at
-        from records
-        where season_id = ${seasonId}
-        order by day, created_at, id
-      `) as RecordRow[];
+      const rows = (await run(
+        () => sql`
+          select id, season_id, kind, to_char(day, 'YYYY-MM-DD') as day, data, created_at
+          from records
+          where season_id = ${seasonId}
+          order by day, created_at, id
+        `,
+      )) as RecordRow[];
       return rows.map(rowToRecord);
     },
     async addRecord(r) {
-      await sql`
-        insert into records (id, season_id, kind, day, data, created_at)
-        values (${r.id}, ${r.seasonId}, ${r.kind}, ${r.day}::date, ${JSON.stringify(r.data)}::jsonb, ${r.createdAt}::timestamptz)
-      `;
+      await run(
+        () => sql`
+          insert into records (id, season_id, kind, day, data, created_at)
+          values (${r.id}, ${r.seasonId}, ${r.kind}, ${r.day}::date, ${JSON.stringify(r.data)}::jsonb, ${r.createdAt}::timestamptz)
+        `,
+      );
     },
     async deleteRecord(id) {
-      const rows = await sql`delete from records where id = ${id} returning id`;
+      const rows = await run(() => sql`delete from records where id = ${id} returning id`);
       return rows.length > 0;
     },
     async getTimer() {
-      const rows = (await sql`select value from kv where key = ${TIMER_KEY}`) as { value: unknown }[];
+      const rows = (await run(() => sql`select value from kv where key = ${TIMER_KEY}`)) as { value: unknown }[];
       return rows.length ? parseJson<TimerState>(rows[0].value) : null;
     },
     async setTimer(t) {
       if (t === null) {
-        await sql`delete from kv where key = ${TIMER_KEY}`;
+        await run(() => sql`delete from kv where key = ${TIMER_KEY}`);
         return;
       }
-      await sql`
-        insert into kv (key, value) values (${TIMER_KEY}, ${JSON.stringify(t)}::jsonb)
-        on conflict (key) do update set value = excluded.value
-      `;
+      await run(
+        () => sql`
+          insert into kv (key, value) values (${TIMER_KEY}, ${JSON.stringify(t)}::jsonb)
+          on conflict (key) do update set value = excluded.value
+        `,
+      );
     },
   };
 }
@@ -215,7 +265,7 @@ export function getStore(): Store {
   if (process.env.NODE_ENV === 'production') {
     throw new Error(
       'DATABASE_URL não está configurada. Em produção o Forja precisa do Postgres (Neon): ' +
-        'ligue o Neon ao projeto na Vercel ou defina DATABASE_URL e rode "npm run db:setup".',
+        'ligue o Neon ao projeto na Vercel (Storage) e faça um novo deploy.',
     );
   }
   // FORJA_DATA_FILE (só em desenvolvimento) escolhe outro arquivo em .data/, por exemplo .data/demo.json.

@@ -2,7 +2,7 @@ import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createFileStore, getStore } from './store';
+import { createFileStore, createNeonStore, getStore } from './store';
 import type { CardioRecord, ForjaRecord, GymRecord, StudyRecord, TimerState } from './types';
 
 function study(id: string, day: string, createdAt: string, minutes = 30): StudyRecord {
@@ -189,5 +189,50 @@ describe('getStore', () => {
     vi.stubEnv('DATABASE_URL', '');
     vi.stubEnv('NODE_ENV', 'development');
     expect(getStore()).not.toBe(neonStore);
+  });
+});
+
+describe('store no Neon', () => {
+  type MakeSql = NonNullable<Parameters<typeof createNeonStore>[1]>;
+
+  /** Banco falso: responde vazio; sem as tabelas, falha como o Postgres (42P01). */
+  function fakeSql(opts: { tables: boolean; failWith?: string }) {
+    const calls: string[] = [];
+    let tables = opts.tables;
+    const sql = (strings: TemplateStringsArray) => {
+      const text = strings.join('?').replace(/\s+/g, ' ').trim();
+      calls.push(text);
+      if (text.startsWith('create')) {
+        if (text.includes('table if not exists kv')) tables = true;
+        return Promise.resolve([]);
+      }
+      if (opts.failWith) return Promise.reject(Object.assign(new Error('falha'), { code: opts.failWith }));
+      if (!tables) return Promise.reject(Object.assign(new Error('relation does not exist'), { code: '42P01' }));
+      return Promise.resolve([]);
+    };
+    const make = (() => sql) as unknown as MakeSql;
+    return { make, calls };
+  }
+
+  it('cria as tabelas sozinho num banco novo e repete a consulta', async () => {
+    const db = fakeSql({ tables: false });
+    const store = createNeonStore('postgres://teste', db.make);
+    const [records, timer] = await Promise.all([store.listRecords('s1'), store.getTimer()]);
+    expect(records).toEqual([]);
+    expect(timer).toBeNull();
+    // uma vez só, mesmo com as duas consultas falhando em paralelo
+    expect(db.calls.filter((c) => c.startsWith('create table if not exists records'))).toHaveLength(1);
+  });
+
+  it('não mexe nas tabelas quando elas já existem', async () => {
+    const db = fakeSql({ tables: true });
+    await createNeonStore('postgres://teste', db.make).listRecords('s1');
+    expect(db.calls.some((c) => c.startsWith('create'))).toBe(false);
+  });
+
+  it('repassa outros erros do banco', async () => {
+    const db = fakeSql({ tables: true, failWith: '28P01' });
+    await expect(createNeonStore('postgres://teste', db.make).listRecords('s1')).rejects.toThrow('falha');
+    expect(db.calls.some((c) => c.startsWith('create'))).toBe(false);
   });
 });
