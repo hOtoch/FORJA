@@ -1,4 +1,6 @@
-"""Gera os PNG de pixel art do Forja com o renderizador da skill pixel-art-gen.
+"""Gera os PNG de pixel art do Forja (baús, bolsa e ícones) com o renderizador da skill pixel-art-gen.
+
+O personagem, os chefes e o mapa são ilustrações prontas em public/pixel/ e não passam por aqui.
 
 Para cada desenho: monta a grade (pixelkit), grava o JSON esparso no formato da skill e
 chama `render_pixel_art.py` para gerar o PNG em public/pixel/ (1 px de arte = 1 px de PNG;
@@ -6,7 +8,7 @@ a interface amplia com image-rendering: pixelated).
 
 Uso:
     python scripts/pixel/build.py              # tudo
-    python scripts/pixel/build.py heroi boss   # só os nomes que começam com esses prefixos
+    python scripts/pixel/build.py bau icone   # só os nomes que começam com esses prefixos
     python scripts/pixel/build.py --sheet out.png   # também monta uma folha de conferência
 
 O script da skill fica em ~/.claude/skills/pixel-art-gen/scripts/render_pixel_art.py
@@ -36,28 +38,9 @@ RENDERER = Path(
 
 
 def all_art() -> dict:
-    from heroes import HEROES
+    from items import ITEMS
 
-    art = dict(HEROES)
-    try:
-        from bosses import BOSSES
-
-        art.update(BOSSES)
-    except ImportError:
-        pass
-    try:
-        from items import ITEMS
-
-        art.update(ITEMS)
-    except ImportError:
-        pass
-    try:
-        from worldmap import MAPS
-
-        art.update(MAPS)
-    except ImportError:
-        pass
-    return art
+    return dict(ITEMS)
 
 
 def render(name: str, canvas) -> Path:

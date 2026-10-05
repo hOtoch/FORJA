@@ -1,8 +1,9 @@
 'use client';
 
-// O mapa da temporada (revisão 3 do DESIGN.md): a imagem em pixel art (public/pixel/mapa.png)
-// e, por cima, os 80 dias na estrada, os chefes no fim de cada semana, os baús e o ferreiro no
-// dia de hoje. A estrada vem de src/config/mapa.json, a mesma que desenhou a imagem.
+// O mapa da temporada (revisões 4 e 6 do DESIGN.md): a ilustração (public/pixel/mapa.webp) e, por
+// cima, os chefes, os baús e o ferreiro. Os 80 dias não aparecem: são só os passos do ferreiro na
+// estrada, um por dia. A estrada de src/config/mapa.json foi traçada sobre a ilustração, em
+// unidades de 640 de largura (a imagem tem 1024).
 
 import { useState, type KeyboardEvent } from 'react';
 import mapa from '@/config/mapa.json';
@@ -11,14 +12,21 @@ import { shortDate } from '@/lib/time';
 import type { ChestState, DayInfo, GameState, WeekInfo } from '@/lib/types';
 import { bossOfWeek } from './bosses';
 import { dayTooltip, heatReason, WEEKDAY_SHORT } from './format';
-import { heroTier } from './pixel';
+import { heroTier, Sprite } from './pixel';
 
-type Pt = { x: number; y: number; nx: number; ny: number };
+type Pt = { x: number; y: number };
 type Selection = { kind: 'day'; index: number } | { kind: 'boss'; week: number } | { kind: 'chest'; id: number };
 
 const W = mapa.width;
 const H = mapa.height;
 const PATH = mapa.path as [number, number][];
+// Chefes (em ordem de semana) e baús ficam em chão livre da ilustração (grama ou neve, sem
+// árvores, pedras, casas, fogos nem estrada), perto do dia de cada um e na região do seu mês.
+// São o centro de cada desenho.
+const BOSS_AT = mapa.bosses as [number, number][];
+const CHEST_AT: Partial<Record<string, number[]>> = mapa.chests;
+// Chefes um pouco menores que o ferreiro, para caberem nos espaços livres do outono.
+const BOSS = 28;
 
 function buildPath() {
   const segs = PATH.slice(1).map((b, i) => {
@@ -27,26 +35,46 @@ function buildPath() {
     return { a, b, len };
   });
   const total = segs.reduce((s, x) => s + x.len, 0);
+  // distância, pela estrada, da vila até cada ponto do traçado
+  const vertex = PATH.map((_, i) => segs.slice(0, i).reduce((s, x) => s + x.len, 0));
   function at(d: number): Pt {
     let rest = Math.max(0, Math.min(total, d));
     for (const s of segs) {
       if (rest <= s.len) {
         const t = s.len === 0 ? 0 : rest / s.len;
-        const dx = (s.b[0] - s.a[0]) / s.len;
-        const dy = (s.b[1] - s.a[1]) / s.len;
-        // normal à esquerda do sentido da caminhada (estrada indo para a direita: normal para cima)
-        return { x: s.a[0] + (s.b[0] - s.a[0]) * t, y: s.a[1] + (s.b[1] - s.a[1]) * t, nx: dy, ny: -dx };
+        return { x: s.a[0] + (s.b[0] - s.a[0]) * t, y: s.a[1] + (s.b[1] - s.a[1]) * t };
       }
       rest -= s.len;
     }
     const last = segs[segs.length - 1];
-    return { x: last.b[0], y: last.b[1], nx: 0, ny: -1 };
+    return { x: last.b[0], y: last.b[1] };
   }
-  return { total, at };
+  return { total, vertex, at };
 }
 
 // A estrada é fixa: calcula uma vez só.
 const GEO = buildPath();
+
+// Cada mês anda só no trecho da sua região: outubro na floresta, novembro nas montanhas e
+// dezembro no gelo. `monthStarts` diz em que ponto do traçado cada trecho começa. Devolve, para
+// cada dia, a distância pela estrada até ele.
+function placeDays(days: DayInfo[]): number[] {
+  const month = (d: DayInfo) => d.date.slice(0, 7);
+  const months = [...new Set(days.map(month))];
+  const starts = mapa.monthStarts.map((i) => GEO.vertex[i]);
+  if (months.length !== starts.length) return days.map((d) => (GEO.total * (d.index - 0.5)) / days.length);
+  const bounds = [...starts, GEO.total];
+  const count = new Map<string, number>();
+  for (const d of days) count.set(month(d), (count.get(month(d)) ?? 0) + 1);
+  const seen = new Map<string, number>();
+  return days.map((d) => {
+    const m = month(d);
+    const k = months.indexOf(m);
+    const j = (seen.get(m) ?? 0) + 1;
+    seen.set(m, j);
+    return bounds[k] + ((bounds[k + 1] - bounds[k]) * (j - 0.5)) / count.get(m)!;
+  });
+}
 
 const CHEST_DAY: Record<string, (state: GameState) => number> = {
   'first-boss': () => 7,
@@ -55,12 +83,6 @@ const CHEST_DAY: Record<string, (state: GameState) => number> = {
   'study-hours': () => 50,
   'final-grade': () => 80,
 };
-
-function heatFill(d: DayInfo): string {
-  if (d.breakKind && d.studyMinutes === 0) return 'url(#mapa-folga)';
-  if (d.isFuture || d.heat === null) return 'rgba(26, 20, 16, 0.18)';
-  return `var(--heat-${d.heat})`;
-}
 
 function bossStatus(w: WeekInfo): string {
   if (w.bossDefeated) return 'derrotado';
@@ -72,40 +94,32 @@ function bossStatus(w: WeekInfo): string {
 export function SeasonMap({ state }: { state: GameState }) {
   const geo = GEO;
   const n = state.days.length;
-  const dayPt = (index: number) => geo.at((geo.total * (index - 0.5)) / n);
+  const dayDist = placeDays(state.days);
+  const dayPt = (index: number) => geo.at(dayDist[index - 1]);
   const todayIndex = state.dayIndex;
   const [sel, setSel] = useState<Selection>(
     todayIndex ? { kind: 'day', index: todayIndex } : { kind: 'boss', week: 1 },
   );
-  const [hover, setHover] = useState<number | null>(null);
 
   const heroPt =
     state.phase === 'before' ? geo.at(0) : state.phase === 'after' || !todayIndex ? geo.at(geo.total) : dayPt(todayIndex);
   const hero = heroTier(state.xp.level);
+  const today = todayIndex ? state.days[todayIndex - 1] : undefined;
 
   const bosses = state.weeks.map((w) => {
     const lastDay = state.days.filter((d) => d.weekIndex === w.index).at(-1)?.index ?? n;
     const p = w.isFinal ? geo.at(geo.total) : dayPt(lastDay);
-    return { w, boss: bossOfWeek(w.index, w.isFinal), p };
+    const [cx, cy] = BOSS_AT[w.index - 1] ?? [p.x, p.y - 26];
+    return { w, boss: bossOfWeek(w.index, w.isFinal), cx, cy };
   });
 
   const chests = state.chests.map((c) => {
     const cfg = season1.chests.find((x) => x.id === c.id);
     const day = cfg ? CHEST_DAY[cfg.kind](state) : 80;
-    return { c, p: dayPt(day), day };
+    const p = dayPt(day);
+    const [cx, cy] = (cfg && CHEST_AT[cfg.kind]) ?? [p.x, p.y + 18];
+    return { c, cx, cy, day };
   });
-
-  function onDaysKey(e: KeyboardEvent<SVGGElement>) {
-    const cur = sel.kind === 'day' ? sel.index : (todayIndex ?? 1);
-    let next = cur;
-    if (e.key === 'ArrowRight' || e.key === 'ArrowUp') next = Math.min(n, cur + 1);
-    else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') next = Math.max(1, cur - 1);
-    else if (e.key === 'Home') next = 1;
-    else if (e.key === 'End') next = n;
-    else return;
-    e.preventDefault();
-    setSel({ kind: 'day', index: next });
-  }
 
   function activate(e: KeyboardEvent, s: Selection) {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -114,9 +128,6 @@ export function SeasonMap({ state }: { state: GameState }) {
     }
   }
 
-  const hovered = hover !== null ? state.days[hover - 1] : null;
-  const hoverPt = hover !== null ? dayPt(hover) : null;
-
   return (
     <div className="space-y-4">
       <div className="min-w-0">
@@ -124,15 +135,8 @@ export function SeasonMap({ state }: { state: GameState }) {
           className="relative mx-auto w-full max-w-[1280px] overflow-hidden rounded-[10px] border-2 border-[#2b241e]"
           style={{ aspectRatio: `${W} / ${H}` }}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element -- pixel art sem reamostragem */}
-          <img
-            src="/pixel/mapa.png"
-            alt=""
-            aria-hidden="true"
-            className="absolute inset-0 h-full w-full"
-            style={{ imageRendering: 'pixelated' }}
-            draggable={false}
-          />
+          {/* eslint-disable-next-line @next/next/no-img-element -- fundo do SVG, nas mesmas medidas que ele */}
+          <img src={mapa.image} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full" draggable={false} />
 
           {mapa.regions.map((r) => (
             <span
@@ -145,55 +149,10 @@ export function SeasonMap({ state }: { state: GameState }) {
           ))}
 
           <svg viewBox={`0 0 ${W} ${H}`} className="absolute inset-0 h-full w-full" role="group" aria-label="Mapa da temporada">
-            <defs>
-              <pattern id="mapa-folga" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-                <rect width="3" height="3" fill="#d8cbae" />
-                <line x1="0" y1="0" x2="0" y2="3" stroke="#47423d" strokeWidth="1.4" />
-              </pattern>
-            </defs>
-
-            {/* os 80 dias */}
-            <g
-              role="listbox"
-              aria-label="Dias da temporada. Use as setas para andar pela estrada."
-              tabIndex={0}
-              onKeyDown={onDaysKey}
-              className="outline-none"
-            >
-              {state.days.map((d) => {
-                const p = dayPt(d.index);
-                const isSel = sel.kind === 'day' && sel.index === d.index;
-                const size = d.isToday ? 7 : 5;
-                return (
-                  <g
-                    key={d.date}
-                    role="option"
-                    aria-selected={isSel}
-                    aria-label={dayTooltip(d)}
-                    onPointerEnter={() => setHover(d.index)}
-                    onPointerLeave={() => setHover(null)}
-                    onClick={() => setSel({ kind: 'day', index: d.index })}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <rect x={p.x - 6} y={p.y - 6} width={12} height={12} fill="transparent" />
-                    <rect
-                      x={Math.round(p.x - size / 2)}
-                      y={Math.round(p.y - size / 2)}
-                      width={size}
-                      height={size}
-                      fill={heatFill(d)}
-                      stroke={isSel ? '#fff3c4' : d.shieldUsed ? '#7e9be0' : '#1a1410'}
-                      strokeWidth={isSel ? 1.5 : 1}
-                    />
-                  </g>
-                );
-              })}
-            </g>
-
             {/* baús */}
-            {chests.map(({ c, p }) => {
-              const x = Math.round(p.x - p.nx * 15 - 8);
-              const y = Math.round(p.y - p.ny * 15 - 8);
+            {chests.map(({ c, cx, cy }) => {
+              const x = Math.round(cx - 8);
+              const y = Math.round(cy - 8);
               return (
                 <g
                   key={c.id}
@@ -218,10 +177,9 @@ export function SeasonMap({ state }: { state: GameState }) {
             })}
 
             {/* chefes */}
-            {bosses.map(({ w, boss, p }) => {
-              const off = w.isFinal ? 0 : 26;
-              const x = Math.round(p.x + p.nx * off - 16);
-              const y = Math.round(p.y + p.ny * off - (w.isFinal ? 46 : 16));
+            {bosses.map(({ w, boss, cx, cy }) => {
+              const x = Math.round(cx - BOSS / 2);
+              const y = Math.round(cy - BOSS / 2);
               const isSel = sel.kind === 'boss' && sel.week === w.index;
               return (
                 <g
@@ -233,82 +191,85 @@ export function SeasonMap({ state }: { state: GameState }) {
                   onKeyDown={(e) => activate(e, { kind: 'boss', week: w.index })}
                   className={`cursor-pointer outline-none ${w.isCurrent && !w.bossDefeated ? 'forja-bob' : ''}`}
                 >
-                  <ellipse cx={x + 16} cy={y + 31} rx={11} ry={3} fill="rgba(26,20,16,0.35)" />
+                  <ellipse cx={x + BOSS / 2} cy={y + BOSS - 1} rx={10} ry={3} fill="rgba(26,20,16,0.35)" />
                   <image
                     href={`/pixel/${boss.sprite}.png`}
                     x={x}
                     y={y}
-                    width={32}
-                    height={32}
+                    width={BOSS}
+                    height={BOSS}
                     style={{
-                      imageRendering: 'pixelated',
                       filter: w.bossDefeated ? 'grayscale(1) opacity(0.55)' : !w.isClosed && !w.isCurrent ? 'saturate(0.85)' : undefined,
                     }}
                   />
                   {w.bossDefeated ? (
-                    <path d={`M${x + 6} ${y + 6} L${x + 26} ${y + 26} M${x + 26} ${y + 6} L${x + 6} ${y + 26}`} stroke="#8e2a1c" strokeWidth={3} />
+                    <path
+                      d={`M${x + 5} ${y + 5} L${x + BOSS - 5} ${y + BOSS - 5} M${x + BOSS - 5} ${y + 5} L${x + 5} ${y + BOSS - 5}`}
+                      stroke="#8e2a1c"
+                      strokeWidth={3}
+                    />
                   ) : null}
-                  {isSel ? <rect x={x - 2} y={y - 2} width={36} height={36} fill="none" stroke="#fff3c4" strokeWidth={1.5} /> : null}
+                  {isSel ? (
+                    <rect x={x - 2} y={y - 2} width={BOSS + 4} height={BOSS + 4} fill="none" stroke="#fff3c4" strokeWidth={1.5} />
+                  ) : null}
                 </g>
               );
             })}
 
-            {/* o ferreiro */}
-            <g className="forja-bob" aria-hidden="true">
-              <ellipse cx={heroPt.x} cy={heroPt.y + 1} rx={9} ry={3} fill="rgba(26,20,16,0.4)" />
-              <image
-                href={`/pixel/${hero.sprite}.png`}
-                x={Math.round(heroPt.x - 16)}
-                y={Math.round(heroPt.y - 30)}
-                width={32}
-                height={32}
-                style={{ imageRendering: 'pixelated' }}
-              />
-            </g>
+            {/* o ferreiro: um passo pela estrada a cada dia */}
+            {today ? (
+              <g
+                role="button"
+                tabIndex={0}
+                aria-label={`O seu ferreiro, hoje: ${dayTooltip(today)}`}
+                onClick={() => setSel({ kind: 'day', index: today.index })}
+                onKeyDown={(e) => activate(e, { kind: 'day', index: today.index })}
+                className="forja-bob cursor-pointer outline-none"
+              >
+                <HeroFigure x={heroPt.x} y={heroPt.y} sprite={hero.sprite} />
+              </g>
+            ) : (
+              <g className="forja-bob" aria-hidden="true">
+                <HeroFigure x={heroPt.x} y={heroPt.y} sprite={hero.sprite} />
+              </g>
+            )}
           </svg>
-
-          {hovered && hoverPt ? (
-            <div
-              className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full rounded-md border border-[#2b241e] bg-[#f3ecdd] px-2 py-1 text-small text-[#2b241e] shadow"
-              style={{ left: `${(hoverPt.x / W) * 100}%`, top: `${((hoverPt.y - 10) / H) * 100}%` }}
-            >
-              <span className="num">{dayTooltip(hovered)}</span>
-            </div>
-          ) : null}
         </div>
       </div>
 
       <div className="mx-auto grid max-w-[1280px] gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
         <Details state={state} sel={sel} chests={chests.map((x) => ({ chest: x.c, day: x.day }))} />
-        <Legend />
+        <Legend heroSprite={hero.sprite} />
       </div>
     </div>
   );
 }
 
-function Legend() {
+function HeroFigure({ x, y, sprite }: { x: number; y: number; sprite: string }) {
+  return (
+    <>
+      <ellipse cx={x} cy={y + 1} rx={9} ry={3} fill="rgba(26,20,16,0.4)" />
+      <image href={`/pixel/${sprite}.png`} x={Math.round(x - 16)} y={Math.round(y - 30)} width={32} height={32} />
+    </>
+  );
+}
+
+function Legend({ heroSprite }: { heroSprite: string }) {
   const items = [
-    { fill: 'var(--heat-4)', label: 'incandescente' },
-    { fill: 'var(--heat-3)', label: 'palha' },
-    { fill: 'var(--heat-2)', label: 'meta cumprida' },
-    { fill: 'var(--heat-1)', label: 'estudou pouco' },
-    { fill: 'var(--heat-0)', label: 'sem estudo' },
-    { fill: 'rgba(26,20,16,0.18)', label: 'por vir' },
+    { sprite: heroSprite, label: 'o seu ferreiro: anda um trecho da estrada por dia' },
+    { sprite: 'boss-01', label: 'chefe da semana; fica cinza e riscado quando é derrotado' },
+    { sprite: 'bau-fechado', label: 'baú: abre quando a condição dele é cumprida' },
   ];
   return (
-    <ul className="flex flex-col gap-1.5 rounded-[10px] border border-line bg-bg p-4 text-small text-muted" aria-label="Legenda">
+    <ul className="flex flex-col gap-2 rounded-[10px] border border-line bg-bg p-4 text-small text-muted" aria-label="Legenda">
       <li className="mb-1 font-gothic text-[1.125rem] font-bold text-ink">Legenda</li>
       {items.map((i) => (
-        <li key={i.label} className="flex items-center gap-1.5">
-          <span className="inline-block h-3 w-3 border border-[#1a1410]" style={{ background: i.fill }} />
+        <li key={i.sprite} className="flex items-center gap-2">
+          <Sprite name={i.sprite} base={16} scale={2} />
           {i.label}
         </li>
       ))}
-      <li className="flex items-center gap-1.5">
-        <span className="inline-block h-3 w-3 border border-[#1a1410] forja-hatched" />
-        folga
-      </li>
-      <li className="mt-2 text-ink">Clique num dia, num chefe ou num baú para ver os detalhes. Pelo teclado, as setas andam pela estrada.</li>
+      <li className="mt-2 text-ink">Clique no ferreiro, num chefe ou num baú para ver os detalhes.</li>
     </ul>
   );
 }
@@ -371,7 +332,7 @@ function Details({
             width={96}
             height={96}
             alt=""
-            style={{ imageRendering: 'pixelated', filter: w.bossDefeated ? 'grayscale(1) opacity(0.55)' : undefined }}
+            style={{ filter: w.bossDefeated ? 'grayscale(1) opacity(0.55)' : undefined }}
           />
           <div>
             <h3 className="font-gothic text-[1.5rem] font-bold leading-7">{boss.name}</h3>

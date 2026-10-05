@@ -38,7 +38,7 @@ export function CharacterPanel({ state }: { state: GameState }) {
       <div className="flex items-center gap-4">
         <div className="relative">
           <Medallion size={104}>
-            <Sprite name={tier.sprite} scale={3} alt={`Seu ferreiro: ${tier.title}`} style={{ marginBottom: 2 }} />
+            <Sprite name={tier.sprite} base={29} scale={3} alt={`Seu ferreiro: ${tier.title}`} style={{ marginBottom: 8 }} />
           </Medallion>
           <span
             className="absolute -bottom-1 -right-1 flex h-9 min-w-9 items-center justify-center rounded-full border-2 border-surface bg-ink px-1.5 text-body font-bold text-bg num"

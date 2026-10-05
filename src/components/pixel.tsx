@@ -1,15 +1,17 @@
-// Pixel art do Forja (revisão 3 do DESIGN.md). Os PNG ficam em public/pixel e são gerados por
-// scripts/pixel/build.py com a skill pixel-art-gen: 1 px de arte = 1 px de imagem, ampliado
-// aqui por múltiplos inteiros com image-rendering: pixelated, para os pixels ficarem nítidos.
+// Desenhos do Forja (revisões 3 e 5 do DESIGN.md), todos em public/pixel:
+// - personagem e chefes são ilustrações de 256 × 256 no estilo pixel art, reduzidas pelo
+//   navegador com suavização (com pixelated, a redução serrilha);
+// - baús, bolsa e ícones são pixel art de verdade, gerada por scripts/pixel/build.py (1 px de
+//   arte = 1 px de imagem), ampliada por múltiplos inteiros com image-rendering: pixelated.
 
 import type { CSSProperties, ReactNode } from 'react';
 import { season1 } from '@/config/season1';
 
 export interface SpriteProps {
   name: string;
-  /** Tamanho original da arte (32 para personagem e chefes, 16 para baús, 12 para ícones). */
+  /** Tamanho de referência (32 para personagem e chefes, 16 para baús, 12 para ícones). */
   base?: number;
-  /** Fator inteiro de ampliação. */
+  /** Ampliação sobre o tamanho de referência (inteira, para a pixel art de verdade). */
   scale?: number;
   alt?: string;
   className?: string;
@@ -20,11 +22,16 @@ export interface SpriteProps {
   faded?: boolean;
 }
 
+/** Ilustrações grandes (personagem e chefes): reduzidas com suavização, não com pixelated. */
+export function isIllustration(name: string): boolean {
+  return /^(heroi|boss)-/.test(name);
+}
+
 export function Sprite({ name, base = 32, scale = 3, alt = '', className, style, locked, faded }: SpriteProps) {
   const size = base * scale;
   const filter = locked ? 'brightness(0) opacity(0.28)' : faded ? 'grayscale(1) opacity(0.5)' : undefined;
   return (
-    // eslint-disable-next-line @next/next/no-img-element -- pixel art: sem reamostragem do otimizador
+    // eslint-disable-next-line @next/next/no-img-element -- arquivos estáticos pequenos, sem o otimizador
     <img
       src={`/pixel/${name}.png`}
       width={size}
@@ -33,7 +40,7 @@ export function Sprite({ name, base = 32, scale = 3, alt = '', className, style,
       aria-hidden={alt ? undefined : true}
       draggable={false}
       className={className}
-      style={{ imageRendering: 'pixelated', filter, ...style }}
+      style={{ imageRendering: isIllustration(name) ? 'auto' : 'pixelated', filter, ...style }}
     />
   );
 }

@@ -11,12 +11,27 @@ Sistema visual do Forja. Escrito com a skill `frontend-design`, antes de qualque
 > - Os gráficos seguem a skill `dataviz`.
 >
 > **Revisão 3, de 05/10/2026: pixel art.** O usuário pediu os desenhos em pixel art, com evoluções do personagem, chefes diferentes e um mapa interativo.
-> - **Como são feitos:** em `scripts/pixel/` (kit de formas em Python, paleta com luz e sombra, contorno automático), renderizados pela skill `pixel-art-gen` em `public/pixel/`. Na tela são ampliados só por múltiplos inteiros, com `image-rendering: pixelated`.
+> - **Como são feitos (personagem e chefes trocados na revisão 5):** em `scripts/pixel/` (kit de formas em Python, paleta com luz e sombra, contorno automático), renderizados pela skill `pixel-art-gen` em `public/pixel/`. Na tela são ampliados só por múltiplos inteiros, com `image-rendering: pixelated`.
 > - **Personagem:** 6 evoluções de 32 × 32, uma por título. Aprendiz (túnica e martelinho), Malhador (avental e bandana), Ferreiro (barba e marreta), Armeiro (cota de malha, escudo e espada), Mestre ferreiro (armadura, capa e martelo de guerra) e Lenda da forja (armadura dourada, coroa e martelo em chamas). As que ainda não foram alcançadas aparecem como silhueta.
 > - **Chefes:** 12 de 32 × 32, um por semana (ver `src/components/bosses.ts`).
 > - **Itens:** baús e bolsa de 16 × 16, ícones de 12 × 12 (livro, martelo, coração, chama, escudo, ampulheta).
-> - **Mapa:** 640 × 352, a estrada da temporada da Vila da Forja ao Castelo do Réveillon, passando pela Floresta da Disciplina (outubro), pelas Montanhas do Esforço (novembro) e pelas Terras do Gelo (dezembro). A tela `/mapa` põe por cima os 80 dias (cor do calor), os chefes, os baús e o ferreiro no dia de hoje. A estrada fica em `src/config/mapa.json`, a mesma usada para desenhar a imagem.
+> - **Mapa:** 640 × 352, a estrada da temporada da Vila da Forja ao Castelo do Réveillon, passando pela Floresta da Disciplina (outubro), pelas Montanhas do Esforço (novembro) e pelas Terras do Gelo (dezembro). A tela `/mapa` põe por cima os 80 dias (cor do calor), os chefes, os baús e o ferreiro no dia de hoje. A estrada fica em `src/config/mapa.json`, a mesma usada para desenhar a imagem. *(Trocado na revisão 4.)*
 > - **Medalhão:** os sprites de personagem, chefe e bolsa ficam num medalhão de ferro, igual nos dois temas.
+>
+> **Revisão 4, de 05/10/2026: mapa ilustrado.** O usuário escolheu um mapa gerado por IA no estilo 16 bits no lugar do desenhado em código (`public/pixel/mapa.webp`, 1024 × 571).
+> - **Estrada:** `src/config/mapa.json` traz a estrada traçada sobre a ilustração, em unidades de 640 de largura. Cada mês anda só no trecho da sua região (`monthStarts`): outubro da vila até o alto do S na floresta, novembro até a ponte e dezembro da ponte ao castelo. Por isso os dias de dezembro ficam mais espaçados.
+> - **Chefes e baús:** ficam em lugares escolhidos à mão (`bosses` e `chests`), fora da estrada e sem encostar uns nos outros. O chefe final guarda o castelo pelo lado direito, para não cobrir o ferreiro que chega no portão.
+> - **Ampliação:** a ilustração não tem grade de pixels exata, então é ampliada com suavização. Os sprites por cima continuam com `pixelated`.
+>
+> **Revisão 5, de 05/10/2026: personagem e chefes ilustrados.** O usuário gerou por IA as 6 evoluções do personagem e os 12 chefes, no lugar dos sprites de 32 × 32 desenhados em código.
+> - **Arquivos:** `public/pixel/heroi-1.png` a `heroi-6.png` e `boss-01.png` a `boss-12.png`, PNG de 256 × 256 com fundo transparente, desenho centralizado e apoiado na base. As imagens vieram em JPEG com o xadrez de "transparência" pintado; o fundo foi tirado e o recorte conferido um por um.
+> - **Exibição:** continuam nos mesmos tamanhos (32 de referência vezes a escala), mas reduzidos com suavização: com `pixelated`, a redução de 256 para 96 serrilha. Baús, bolsa e ícones seguem como pixel art de verdade, gerada por `scripts/pixel/build.py`.
+> - **Ficaram de fora:** a segunda versão do Rei Dragão (dragão escuro sobre xadrez escuro, não separa) e a fumaça branca do nariz do Dragão do Fim de Ano, da mesma cor do fundo.
+>
+> **Revisão 6, de 05/10/2026: mapa sem os quadradinhos.** Os 80 dias na estrada deixavam o mapa embolado.
+> - **Dias:** não aparecem mais. São só os passos do ferreiro: ele anda um trecho da estrada por dia, no mesmo ritmo de antes. O detalhe do dia de hoje abre ao clicar no ferreiro; o histórico de cada dia continua na barra da temporada, no painel.
+> - **Chefes e baús:** saíram de cima de árvores, pedras, casas e fogos. As posições de `src/config/mapa.json` foram escolhidas sobre o chão livre da ilustração (grama ou neve lisa), perto do dia de cada um e dentro da região do seu mês. No mapa, os chefes têm 28 de referência (o ferreiro, 32), para caberem nos espaços livres do outono.
+> - **Legenda:** ferreiro, chefe e baú, no lugar das cores dos dias.
 
 ---
 

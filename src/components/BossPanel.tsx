@@ -63,7 +63,8 @@ function BossFigure({ sprite, defeated, title }: { sprite: string; defeated: boo
   return (
     <span className="relative" title={title}>
       <Medallion size={100}>
-        <Sprite name={sprite} scale={3} faded={defeated} style={{ marginBottom: 2 }} />
+        {/* 84 de 100: zzz, asas e fogos não encostam na borda do medalhão */}
+        <Sprite name={sprite} base={28} scale={3} faded={defeated} style={{ marginBottom: 8 }} />
       </Medallion>
       {defeated ? (
         <span className="pointer-events-none absolute inset-0 flex items-center justify-center" aria-hidden="true">

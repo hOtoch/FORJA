@@ -66,14 +66,19 @@ As instruções estão em [scripts/windows/README.md](scripts/windows/README.md)
 
 ## Pixel art
 
-Os desenhos (personagem, chefes, baús, ícones e o mapa) são gerados por `scripts/pixel/build.py` com a skill `pixel-art-gen` e ficam em `public/pixel/`. Os PNG já estão no git; só é preciso rodar de novo para mudar algum desenho:
+Os desenhos ficam em `public/pixel/`.
+
+- **Personagem (6 evoluções) e chefes (12):** ilustrações geradas por IA, em PNG de 256 × 256 com fundo transparente.
+- **Baús, bolsa e ícones:** pixel art gerada por `scripts/pixel/build.py` com a skill `pixel-art-gen`. Os PNG já estão no git; só é preciso rodar de novo para mudar algum desses desenhos:
 
 ```bash
-python scripts/pixel/build.py            # tudo
-python scripts/pixel/build.py boss mapa  # só o que começa com esses nomes
+python scripts/pixel/build.py             # tudo
+python scripts/pixel/build.py bau icone   # só o que começa com esses nomes
 ```
 
 Precisa de Python com Pillow e do renderizador da skill em `~/.claude/skills/pixel-art-gen` (ou em `PIXEL_ART_RENDERER`).
+
+O mapa é uma ilustração (`public/pixel/mapa.webp`). A estrada, os chefes e os baús ficam por cima, nas posições de `src/config/mapa.json`, que foram marcadas sobre essa imagem. Se trocar a imagem, essas posições precisam ser marcadas de novo.
 
 ## Como funciona por dentro
 
