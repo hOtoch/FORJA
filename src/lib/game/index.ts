@@ -35,6 +35,7 @@ export function computeGameState(
   const days = streak.days.map((d) => ({ ...d, xp: xp.byDay.get(d.date) ?? 0, fundCents: fundByDay.get(d.date) ?? 0 }));
 
   const currentWeek = weeks.find((w) => w.isCurrent) ?? null;
+  const rescue = currentWeek ? (weeks.find((w) => w.index === currentWeek.index - 1)?.rescue ?? null) : null;
   const todayInfo = days.find((d) => d.isToday) ?? null;
 
   const reserveUsed = reserveBreakDays(records, config).size;
@@ -48,6 +49,7 @@ export function computeGameState(
     days,
     weeks,
     currentWeek,
+    rescue,
     todayInfo,
     yesterdayMissedUnprotected: streak.yesterdayMissedUnprotected,
     streak: { current: streak.current, best: streak.best, shields: streak.shields },
@@ -80,6 +82,7 @@ export function computeGameState(
       today,
       todayInfo,
       currentWeek,
+      rescue,
       yesterdayMissedUnprotected: streak.yesterdayMissedUnprotected,
     }),
   };

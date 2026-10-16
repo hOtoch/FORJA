@@ -29,6 +29,7 @@ import type {
   ClientRecord,
   DepositRecord,
   GymRecord,
+  RescueRecord,
   StudyRecord,
 } from '@/lib/types';
 
@@ -58,11 +59,14 @@ const MSG = {
   weekOpen: 'Essa semana ainda não fechou.',
   depositDone: 'Esse depósito já foi confirmado.',
   contract: 'Informe o valor do contrato.',
+  noRescue: 'Não há evento de resgate hoje.',
+  rescueAuto: 'Este desafio conta sozinho pelos registros do dia.',
+  rescueDone: 'Este resgate já foi concluído.',
 } as const;
 
 const MAX_MINUTES = 600;
 const MAX_NOTE = 200;
-const UNDOABLE_KINDS = new Set(['study', 'gym', 'cardio', 'client']);
+const UNDOABLE_KINDS = new Set(['study', 'gym', 'cardio', 'client', 'rescue']);
 const MODALITIES: CardioModality[] = ['esteira', 'bicicleta', 'caminhada', 'eliptico', 'pelada', 'outro'];
 
 // ---------- Apoio ----------
@@ -355,13 +359,13 @@ export async function confirmDeposit(weekIndex: number): Promise<ActionResult> {
     if (typeof weekIndex !== 'number' || !Number.isInteger(weekIndex)) return fail(MSG.week);
     const week = state.weeks.find((w) => w.index === weekIndex);
     if (!week) return fail(MSG.week);
+    // depois do depósito, só a diferença (um chefe resgatado mais tarde, por exemplo)
+    const pending = state.fund.pending.find((p) => p.weekIndex === weekIndex);
     const deposited =
-      week.depositedCents !== null ||
-      records.some((r) => r.kind === 'deposit' && r.data.weekIndex === weekIndex);
-    if (deposited) return fail(MSG.depositDone);
+      week.depositedCents !== null || records.some((r) => r.kind === 'deposit' && r.data.weekIndex === weekIndex);
+    if (deposited && !pending) return fail(MSG.depositDone);
     if (!week.isClosed) return fail(MSG.weekOpen);
 
-    const pending = state.fund.pending.find((p) => p.weekIndex === weekIndex);
     const record: DepositRecord = {
       id: newId(),
       seasonId: season1.id,
@@ -396,6 +400,30 @@ export async function addClient(input: {
     };
     await ctx.store.addRecord(record);
     return { ok: true, data: { bonusCents } };
+  });
+}
+
+/** "Concluí" do evento de resgate de hoje, para desafios que não dá para medir (prospecção, leitura). */
+export async function completeRescue(): Promise<ActionResult> {
+  return withSession(async (ctx) => {
+    const { state } = await loadState(ctx);
+    const rescue = state.rescue;
+    if (!rescue || rescue.day !== ctx.today || rescue.state === 'upcoming' || rescue.state === 'missed') {
+      return fail(MSG.noRescue);
+    }
+    if (rescue.kind !== 'manual') return fail(MSG.rescueAuto);
+    if (rescue.state === 'done') return fail(MSG.rescueDone);
+
+    const record: RescueRecord = {
+      id: newId(),
+      seasonId: season1.id,
+      kind: 'rescue',
+      day: ctx.today,
+      createdAt: ctx.instant.toISOString(),
+      data: { weekIndex: rescue.weekIndex },
+    };
+    await ctx.store.addRecord(record);
+    return { ok: true };
   });
 }
 

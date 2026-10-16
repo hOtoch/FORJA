@@ -32,16 +32,22 @@ export function bossHp(w: WeekInfo) {
 }
 
 function missingSentence(state: GameState, w: WeekInfo): string {
+  if (w.bossRescued) return `Derrotado no evento de resgate. Você ganhou ${season1.xp.boss} XP e ${formatBRL(season1.fund.bossCents)} no Fundo.`;
   if (w.bossDefeated) {
     const prize = w.isFinal
       ? `${season1.xp.boss} XP e ${formatBRL(season1.fund.finalBossCents)} no Fundo`
       : `1 escudo, ${season1.xp.boss} XP e ${formatBRL(season1.fund.bossCents)} no Fundo`;
     return `Derrotado. Você ganhou ${prize}.`;
   }
-  if (w.shieldDays > 0) return 'Um dia foi salvo por escudo, então este chefe não cai. Treinos e cardios ainda rendem.';
+  const open = !w.isClosed;
+  if (w.shieldDays > 0 && !open) return 'Um dia foi salvo por escudo, então este chefe não caiu. Treinos e cardios ainda rendem.';
   const { needSuper, left } = cardioNumbers(w);
   const missing: string[] = [];
-  const studyLeft = w.studyDaysRequired - w.studyDaysMet;
+  // dias que ainda vêm pela frente; os que já passaram sem a meta viram minutos para compensar
+  const studyLeft = state.days.filter(
+    (d) => d.weekIndex === w.index && !d.breakKind && (d.isFuture || (d.isToday && !d.studyMet)),
+  ).length;
+  if (w.studyMinutesOwed > 0) missing.push(`${w.studyMinutesOwed} min de estudo a mais para compensar`);
   if (studyLeft > 0) missing.push(plural(studyLeft, 'dia de estudo', 'dias de estudo'));
   const gymLeft = Math.max(0, w.gymTarget - w.gym);
   if (gymLeft > 0) missing.push(plural(gymLeft, 'treino', 'treinos'));
@@ -52,9 +58,9 @@ function missingSentence(state: GameState, w: WeekInfo): string {
   return `Faltam ${joinPt(missing)}, em ${daysLeft === 1 ? '1 dia' : `${daysLeft} dias`}.`;
 }
 
-/** Opacidade do ícone de estudo: cheio se cumpriu, pela metade se estudou pouco. */
+/** Opacidade do ícone de estudo: cheio se cumpriu ou foi compensado, pela metade se estudou pouco. */
 function studyOpacity(d: DayInfo): number {
-  if (d.studyMet) return 1;
+  if (d.studyMet || d.studyRedeemed) return 1;
   if (d.studyMinutes > 0) return 0.55;
   return 0.18;
 }
@@ -92,7 +98,13 @@ function WeekStrip({ days }: { days: DayInfo[] }) {
               off
                 ? 'folga'
                 : [
-                    d.studyMet ? 'estudo cumprido' : d.studyMinutes > 0 ? `${d.studyMinutes} min de estudo` : 'sem estudo',
+                    d.studyMet
+                      ? 'estudo cumprido'
+                      : d.studyRedeemed
+                        ? 'estudo compensado em outro dia'
+                        : d.studyMinutes > 0
+                          ? `${d.studyMinutes} min de estudo`
+                          : 'sem estudo',
                     d.gym > 0 ? 'treino' : null,
                     d.cardio > 0 ? (d.superCardio > 0 ? 'supercardio' : 'cardio') : null,
                   ]
@@ -112,7 +124,12 @@ function WeekStrip({ days }: { days: DayInfo[] }) {
               </span>
             ) : (
               <span className="flex flex-col items-center gap-1" aria-hidden="true">
-                <Sprite name="icone-livro" base={12} scale={2} style={{ opacity: studyOpacity(d) }} />
+                <span className="relative" title={d.studyRedeemed ? 'Compensado com minutos a mais em outro dia' : undefined}>
+                  <Sprite name="icone-livro" base={12} scale={2} style={{ opacity: studyOpacity(d) }} />
+                  {d.studyRedeemed ? (
+                    <span className="absolute -right-2 -top-1.5 text-micro font-bold text-[var(--money)]">+</span>
+                  ) : null}
+                </span>
                 <Sprite name="icone-martelo" base={12} scale={2} style={{ opacity: d.gym > 0 ? 1 : 0.18 }} />
                 <span className="relative">
                   <Sprite name="icone-coracao" base={12} scale={2} style={{ opacity: d.cardio > 0 ? 1 : 0.18 }} />
@@ -211,6 +228,13 @@ export function BossPanel({ state }: { state: GameState }) {
           <dt className="text-micro font-medium text-muted">Estudo</dt>
           <dd className="text-body font-bold num">
             {w.studyDaysMet} de {w.studyDaysRequired}
+            {w.studyDaysRedeemed > 0 ? (
+              <span className="ml-1 text-micro font-medium text-muted">
+                ({w.studyDaysRedeemed} {w.studyDaysRedeemed === 1 ? 'compensado' : 'compensados'})
+              </span>
+            ) : w.studySurplusMinutes > 0 ? (
+              <span className="ml-1 text-micro font-medium text-muted">(+{w.studySurplusMinutes} min guardados)</span>
+            ) : null}
           </dd>
         </div>
         <div>

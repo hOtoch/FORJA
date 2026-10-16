@@ -2,6 +2,8 @@
 
 import { seasonWeeks } from '@/lib/time';
 import type { DayInfo, ForjaRecord, SeasonConfig, WeekInfo } from '@/lib/types';
+import { redeemStudy, studyCountsForWeek } from './days';
+import { rescueEvent } from './rescue';
 
 export interface WeekTargets {
   gymTarget: number;
@@ -18,8 +20,15 @@ export function weekTargets(isFinal: boolean, config: SeasonConfig): WeekTargets
 
 export interface WeekTally extends WeekTargets {
   studyDaysRequired: number;
-  /** Dias não-folga com a meta cumprida (dia salvo por escudo nunca está cumprido). */
+  /**
+   * Dias não-folga que contam como cumpridos: com a meta (dia salvo por escudo não conta) ou
+   * compensados por minutos a mais em outros dias da semana.
+   */
   studyDaysMet: number;
+  studyDaysRedeemed: number;
+  studyMinutesOwed: number;
+  studySurplusMinutes: number;
+  /** Dias salvos por escudo e não compensados depois. */
   shieldDays: number;
   gym: number;
   cardio: number;
@@ -34,17 +43,19 @@ export function tallyWeek(weekIndex: number, isFinal: boolean, days: DayInfo[], 
   const targets = weekTargets(isFinal, config);
   let studyDaysRequired = 0;
   let studyDaysMet = 0;
+  let studyDaysRedeemed = 0;
   let shieldDays = 0;
   let gym = 0;
   let cardio = 0;
   let superCardio = 0;
-  for (const d of days) {
-    if (d.weekIndex !== weekIndex) continue;
+  const weekDays = days.filter((d) => d.weekIndex === weekIndex);
+  for (const d of weekDays) {
     if (!d.breakKind) {
       studyDaysRequired += 1;
-      if (d.studyMet && !d.shieldUsed) studyDaysMet += 1;
+      if (studyCountsForWeek(d)) studyDaysMet += 1;
+      if (d.studyRedeemed) studyDaysRedeemed += 1;
     }
-    if (d.shieldUsed) shieldDays += 1;
+    if (d.shieldUsed && !d.studyRedeemed) shieldDays += 1;
     gym += d.gym;
     cardio += d.cardio;
     superCardio += d.superCardio;
@@ -58,10 +69,14 @@ export function tallyWeek(weekIndex: number, isFinal: boolean, days: DayInfo[], 
     gym >= targets.gymTarget &&
     cardioEffective >= targets.cardioTarget &&
     superOk;
+  const { owedMinutes, surplusMinutes } = redeemStudy(weekDays, config);
   return {
     ...targets,
     studyDaysRequired,
     studyDaysMet,
+    studyDaysRedeemed,
+    studyMinutesOwed: owedMinutes,
+    studySurplusMinutes: surplusMinutes,
     shieldDays,
     gym,
     cardio,
@@ -72,13 +87,19 @@ export function tallyWeek(weekIndex: number, isFinal: boolean, days: DayInfo[], 
 }
 
 /** Quanto a semana rende: dias cumpridos, treinos e cardios até a meta, chefe e bônus de clientes. */
-export function weekFundCents(tally: WeekTally, isFinal: boolean, clientBonusCents: number, config: SeasonConfig): number {
+export function weekFundCents(
+  tally: WeekTally,
+  isFinal: boolean,
+  clientBonusCents: number,
+  config: SeasonConfig,
+  bossDefeated = tally.bossDefeated,
+): number {
   const f = config.fund;
   return (
     f.studyDayCents * tally.studyDaysMet +
     f.gymCents * Math.min(tally.gym, tally.gymTarget) +
     f.cardioCents * Math.min(tally.cardioEffective, tally.cardioTarget) +
-    (tally.bossDefeated ? (isFinal ? f.finalBossCents : f.bossCents) : 0) +
+    (bossDefeated ? (isFinal ? f.finalBossCents : f.bossCents) : 0) +
     clientBonusCents
   );
 }
@@ -107,6 +128,11 @@ export function depositedForWeek(records: ForjaRecord[], weekIndex: number): num
 export function buildWeeks(days: DayInfo[], records: ForjaRecord[], config: SeasonConfig, today: string): WeekInfo[] {
   return seasonWeeks(config).map((w) => {
     const t = tallyWeek(w.index, w.isFinal, days, config);
+    // chefe que escapou numa semana fechada (não a final) ganha o evento de resgate
+    const rescue =
+      !t.bossDefeated && !w.isFinal && today > w.end ? rescueEvent(w.index, days, records, config, today) : null;
+    const bossRescued = rescue?.state === 'done';
+    const bossDefeated = t.bossDefeated || bossRescued;
     return {
       index: w.index,
       start: w.start,
@@ -116,6 +142,9 @@ export function buildWeeks(days: DayInfo[], records: ForjaRecord[], config: Seas
       isCurrent: today >= w.start && today <= w.end,
       studyDaysRequired: t.studyDaysRequired,
       studyDaysMet: t.studyDaysMet,
+      studyDaysRedeemed: t.studyDaysRedeemed,
+      studyMinutesOwed: t.studyMinutesOwed,
+      studySurplusMinutes: t.studySurplusMinutes,
       shieldDays: t.shieldDays,
       gym: t.gym,
       gymTarget: t.gymTarget,
@@ -123,8 +152,10 @@ export function buildWeeks(days: DayInfo[], records: ForjaRecord[], config: Seas
       cardioTarget: t.cardioTarget,
       hasSuper: t.hasSuper,
       superRequired: t.superRequired,
-      bossDefeated: t.bossDefeated,
-      fundCents: weekFundCents(t, w.isFinal, clientBonusBetween(records, w.start, w.end), config),
+      bossDefeated,
+      bossRescued,
+      rescue,
+      fundCents: weekFundCents(t, w.isFinal, clientBonusBetween(records, w.start, w.end), config, bossDefeated),
       depositedCents: depositedForWeek(records, w.index),
     };
   });

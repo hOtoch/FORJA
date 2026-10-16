@@ -96,6 +96,42 @@ export const season1: SeasonConfig = {
       },
     },
   ],
+  rescue: {
+    challenges: [
+      {
+        id: 'estudo-extra',
+        title: 'Estudar 1h a mais',
+        description: 'Estude 2h no dia do evento: a meta de 1h e mais 1h.',
+        kind: 'study-minutes',
+        target: 120,
+      },
+      {
+        id: 'cardio-1h',
+        title: '1h de cardio',
+        description: 'Some 60 min de cardio no dia do evento.',
+        kind: 'cardio-minutes',
+        target: 60,
+      },
+      {
+        id: 'treino-duplo',
+        title: 'Treino e cardio',
+        description: 'Treine e faça um cardio no dia do evento.',
+        kind: 'gym-cardio',
+      },
+      {
+        id: 'prospeccao',
+        title: 'Prospectar 20 clientes',
+        description: 'Aborde 20 clientes em potencial no dia do evento.',
+        kind: 'manual',
+      },
+      {
+        id: 'leitura',
+        title: 'Ler 30 páginas',
+        description: 'Leia 30 páginas de um livro no dia do evento.',
+        kind: 'manual',
+      },
+    ],
+  },
   courses: {
     queue: ['desenvolvimento-assistido-por-ia', 'python-full-ai-profissional', 'python-full-ai-2025'],
     initialCompleted: {

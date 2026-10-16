@@ -1,7 +1,7 @@
 // Status do dia para o painel e para o lembrete das 21h (/api/status).
 
 import { daysBetween, weekdayOf } from '@/lib/time';
-import type { DayInfo, GameState, SeasonConfig, WeekInfo } from '@/lib/types';
+import type { DayInfo, GameState, RescueEvent, SeasonConfig, WeekInfo } from '@/lib/types';
 import type { Phase } from './days';
 
 export interface StatusInput {
@@ -10,6 +10,8 @@ export interface StatusInput {
   today: string;
   todayInfo: DayInfo | null;
   currentWeek: WeekInfo | null;
+  /** Evento de resgate desta semana, se houver. */
+  rescue?: RescueEvent | null;
   yesterdayMissedUnprotected: boolean;
 }
 
@@ -49,6 +51,10 @@ export function computeStatus(input: StatusInput): GameState['status'] {
       weekAtRisk = true;
       reasons.push('Falta o supercardio da semana.');
     }
+  }
+
+  if (input.rescue?.state === 'active') {
+    reasons.push(`Evento de resgate hoje: ${input.rescue.title.toLowerCase()} derrota o chefe da semana ${input.rescue.weekIndex}.`);
   }
 
   return { studyDone, weekAtRisk, reasons };

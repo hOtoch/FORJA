@@ -25,10 +25,11 @@ export interface DayTotals {
   studyMinutes: number;
   gym: number;
   cardio: number;
+  cardioMinutes: number;
   superCardio: number;
 }
 
-const emptyTotals = (): DayTotals => ({ studyMinutes: 0, gym: 0, cardio: 0, superCardio: 0 });
+const emptyTotals = (): DayTotals => ({ studyMinutes: 0, gym: 0, cardio: 0, cardioMinutes: 0, superCardio: 0 });
 
 /** Soma estudo, treinos e cardios por dia do jogo (dentro ou fora da temporada). */
 export function totalsByDay(records: ForjaRecord[], config: SeasonConfig): Map<string, DayTotals> {
@@ -52,6 +53,7 @@ export function totalsByDay(records: ForjaRecord[], config: SeasonConfig): Map<s
       case 'cardio': {
         const t = get(r.day);
         t.cardio += 1;
+        t.cardioMinutes += Math.max(0, r.data.minutes);
         // supercardio pela regra (modalidade e minutos), não pelo que foi gravado
         if (isSuperCardio(r.data.modality, r.data.minutes, config)) t.superCardio += 1;
         break;
@@ -92,6 +94,41 @@ export function dayHeat(
 }
 
 /**
+ * Compensação de horas na semana: os minutos acima da meta (e todo o estudo em dia de folga)
+ * cobrem dias fechados que ficaram sem a meta. Os dias com o menor buraco são cobertos primeiro,
+ * para salvar o maior número de dias. Hoje nunca é compensado (ainda dá para cumprir), mas o que
+ * passar da meta hoje já compensa dias anteriores.
+ */
+export function redeemStudy(
+  weekDays: Pick<DayInfo, 'date' | 'breakKind' | 'studyMinutes' | 'isFuture' | 'isToday'>[],
+  config: SeasonConfig,
+): { redeemed: Set<string>; owedMinutes: number; surplusMinutes: number } {
+  const goal = config.goals.studyMinutes;
+  let surplus = 0;
+  const gaps: { date: string; deficit: number }[] = [];
+  for (const d of weekDays) {
+    if (d.isFuture) continue;
+    if (d.breakKind) surplus += d.studyMinutes;
+    else if (d.studyMinutes >= goal) surplus += d.studyMinutes - goal;
+    else if (!d.isToday) gaps.push({ date: d.date, deficit: goal - d.studyMinutes });
+  }
+  gaps.sort((a, b) => a.deficit - b.deficit || (a.date < b.date ? -1 : 1));
+  const redeemed = new Set<string>();
+  let owedMinutes = 0;
+  for (const g of gaps) {
+    if (g.deficit <= surplus) {
+      surplus -= g.deficit;
+      redeemed.add(g.date);
+    } else {
+      owedMinutes += g.deficit;
+    }
+  }
+  // o que sobrou abate do que falta (não salva um dia sozinho, mas diminui a conta)
+  const paid = Math.min(surplus, owedMinutes);
+  return { redeemed, owedMinutes: owedMinutes - paid, surplusMinutes: surplus - paid };
+}
+
+/**
  * DayInfo dos 80 dias. `shieldUsed`, `xp` e `fundCents` saem zerados aqui e são preenchidos
  * depois pelo motor (streak, xp e fund).
  */
@@ -102,7 +139,7 @@ export function buildDays(records: ForjaRecord[], config: SeasonConfig, today: s
   const weekOf = new Map<string, number>();
   for (const w of seasonWeeks(config)) for (const d of w.days) weekOf.set(d, w.index);
 
-  return seasonDays(config).map((date, i) => {
+  const days = seasonDays(config).map((date, i) => {
     const t = totals.get(date) ?? emptyTotals();
     const breakKind: DayInfo['breakKind'] = planned.has(date) ? 'planned' : reserve.has(date) ? 'reserve' : null;
     const base = {
@@ -116,15 +153,30 @@ export function buildDays(records: ForjaRecord[], config: SeasonConfig, today: s
       studyMinutes: t.studyMinutes,
       studyMet: t.studyMinutes >= config.goals.studyMinutes,
       shieldUsed: false,
+      studyRedeemed: false,
       gym: t.gym,
       cardio: t.cardio,
+      cardioMinutes: t.cardioMinutes,
       superCardio: t.superCardio,
       xp: 0,
       fundCents: 0,
     };
     return { ...base, heat: dayHeat(base, config) };
   });
+
+  for (const w of seasonWeeks(config)) {
+    const { redeemed } = redeemStudy(
+      days.filter((d) => d.weekIndex === w.index),
+      config,
+    );
+    for (const d of days) if (redeemed.has(d.date)) d.studyRedeemed = true;
+  }
+  return days;
 }
+
+/** Dia que conta como cumprido para a semana (chefe, Fundo e nota). */
+export const studyCountsForWeek = (d: Pick<DayInfo, 'breakKind' | 'studyMet' | 'shieldUsed' | 'studyRedeemed'>) =>
+  !d.breakKind && ((d.studyMet && !d.shieldUsed) || d.studyRedeemed);
 
 /** Dia fechado = anterior a hoje. */
 export const isClosedDay = (day: Pick<DayInfo, 'date'>, today: string) => day.date < today;

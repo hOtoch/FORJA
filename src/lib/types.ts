@@ -2,7 +2,7 @@
 
 // ---------- Registros (o que fica guardado) ----------
 
-export type RecordKind = 'study' | 'gym' | 'cardio' | 'break' | 'deposit' | 'client';
+export type RecordKind = 'study' | 'gym' | 'cardio' | 'break' | 'deposit' | 'client' | 'rescue';
 
 export interface BaseRecord<K extends RecordKind, D> {
   id: string;
@@ -61,13 +61,17 @@ export type ClientRecord = BaseRecord<
   }
 >;
 
+/** Desafio de resgate que não dá para medir pelos registros (prospecção, leitura), marcado à mão. */
+export type RescueRecord = BaseRecord<'rescue', { weekIndex: number }>;
+
 export type ForjaRecord =
   | StudyRecord
   | GymRecord
   | CardioRecord
   | BreakRecord
   | DepositRecord
-  | ClientRecord;
+  | ClientRecord
+  | RescueRecord;
 
 // ---------- Timer em andamento (kv['timer']) ----------
 
@@ -119,6 +123,19 @@ export interface ChestConfig {
   prizes?: Partial<Record<'S' | 'A' | 'B' | 'C', string>>;
 }
 
+/**
+ * Desafio do evento de resgate. Os medidos pelos registros: `study-minutes` (minutos de estudo no
+ * dia), `cardio-minutes` (minutos de cardio somados no dia) e `gym-cardio` (treino e cardio no mesmo
+ * dia). `manual`: marcado à mão ("Concluí").
+ */
+export interface RescueChallengeConfig {
+  id: string;
+  title: string;
+  description: string;
+  kind: 'study-minutes' | 'cardio-minutes' | 'gym-cardio' | 'manual';
+  target?: number;
+}
+
 export interface SeasonConfig {
   id: string;
   name: string;
@@ -165,6 +182,8 @@ export interface SeasonConfig {
     perfectCents: number;
   };
   chests: ChestConfig[];
+  /** Chefe que escapou ganha um evento de resgate num dia sorteado da semana seguinte. */
+  rescue: { challenges: RescueChallengeConfig[] };
   courses: {
     queue: string[];
     initialCompleted: Record<string, number[]>;
@@ -200,8 +219,11 @@ export interface DayInfo {
   studyMinutes: number;
   studyMet: boolean;
   shieldUsed: boolean;
+  /** Meta não cumprida, mas compensada por minutos a mais em outros dias da mesma semana. */
+  studyRedeemed: boolean;
   gym: number;
   cardio: number;
+  cardioMinutes: number;
   superCardio: number;
   /** null = futuro ou hoje sem nada */
   heat: Heat | null;
@@ -225,9 +247,36 @@ export interface WeekInfo {
   cardioTarget: number;
   hasSuper: boolean;
   superRequired: boolean;
+  /** Dias que ficaram sem a meta mas foram compensados por minutos a mais na semana. */
+  studyDaysRedeemed: number;
+  /** Minutos que ainda faltam para compensar os dias fechados sem a meta (0 = nada devendo). */
+  studyMinutesOwed: number;
+  /** Minutos a mais na semana que ainda não foram usados para compensar nada. */
+  studySurplusMinutes: number;
   bossDefeated: boolean;
+  /** Derrotado pelo evento de resgate (e não pelas metas da semana). */
+  bossRescued: boolean;
+  /** Evento de resgate deste chefe, se ele escapou; acontece na semana seguinte. */
+  rescue: RescueEvent | null;
   fundCents: number;
   depositedCents: number | null;
+}
+
+export interface RescueEvent {
+  /** Semana do chefe que escapou. */
+  weekIndex: number;
+  /** Dia sorteado do evento (na semana seguinte). */
+  day: string;
+  challengeId: string;
+  title: string;
+  description: string;
+  kind: RescueChallengeConfig['kind'];
+  target: number;
+  progress: number;
+  /** upcoming: o dia ainda não chegou (o desafio fica em segredo); active: é hoje. */
+  state: 'upcoming' | 'active' | 'done' | 'missed';
+  /** Registro do "Concluí" (desafios manuais), para desfazer. */
+  recordId: string | null;
 }
 
 export interface ChestState {
@@ -289,6 +338,8 @@ export interface GameState {
   days: DayInfo[];
   weeks: WeekInfo[];
   currentWeek: WeekInfo | null;
+  /** Evento de resgate que cai na semana atual (do chefe da semana anterior), se houver. */
+  rescue: RescueEvent | null;
   todayInfo: DayInfo | null;
   yesterdayMissedUnprotected: boolean;
   streak: { current: number; best: number; shields: number };

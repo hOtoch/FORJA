@@ -21,6 +21,7 @@ import { Dialog, ToastProvider } from './feedback';
 import { FundPanel } from './FundPanel';
 import { GradeMark } from './GradeMark';
 import { Header } from './Header';
+import { RescuePanel } from './RescuePanel';
 import { SeasonCard } from './SeasonCard';
 import { StudyChartCard } from './StudyChartCard';
 import { TodayPanel, type StopInfo } from './TodayPanel';
@@ -64,8 +65,11 @@ function DashboardBody({ state, records }: { state: GameState; records?: ForjaRe
             onStopSession={(info) => setDialog({ kind: 'stop', info })}
           />
         </div>
-        <div className="lg:col-span-5">
-          <BossPanel state={state} />
+        <div className="flex flex-col gap-5 lg:col-span-5">
+          <RescuePanel state={state} />
+          <div className="flex-1">
+            <BossPanel state={state} />
+          </div>
         </div>
 
         {/* 2. a temporada inteira */}

@@ -2,6 +2,7 @@
 
 import { seasonWeeks } from '@/lib/time';
 import type { DayInfo, GameState, GradeLetter, SeasonConfig } from '@/lib/types';
+import { studyCountsForWeek } from './days';
 import { tallyWeek } from './weeks';
 
 const EPS = 1e-9;
@@ -15,7 +16,7 @@ export function letterFor(pct: number, config: SeasonConfig): GradeLetter {
 
 /**
  * Nota sobre os dias e semanas que já fecharam antes de `asOf` (o "hoje" da conta).
- * - estudo = dias não-folga cumpridos (dia de escudo não conta) ÷ dias não-folga fechados;
+ * - estudo = dias não-folga cumpridos ou compensados (dia de escudo não conta) ÷ dias não-folga fechados;
  * - academia = Σ min(treinos, meta) ÷ Σ metas das semanas fechadas;
  * - cardio = Σ min(cardioEfetivo, meta) ÷ Σ metas das semanas fechadas.
  * Hábito sem nada fechado fica fora da média; sem nada fechado, `letter` é null.
@@ -27,7 +28,7 @@ export function computeGrade(days: DayInfo[], config: SeasonConfig, asOf: string
   for (const d of days) {
     if (d.date >= asOf || d.breakKind) continue;
     studyDays += 1;
-    if (d.studyMet && !d.shieldUsed) studyMet += 1;
+    if (studyCountsForWeek(d)) studyMet += 1;
   }
 
   let gymDone = 0;
