@@ -67,16 +67,6 @@ function progressOf(
       const progress = d?.cardioMinutes ?? 0;
       return { progress, target: amount, label: `${Math.min(progress, amount)} de ${amount} min` };
     }
-    case 'gym-cardio': {
-      // metade da barra é o treino, metade os minutos de cardio
-      const gymDone = Boolean(d && d.gym > 0);
-      const cardio = Math.min(d?.cardioMinutes ?? 0, amount);
-      return {
-        progress: (gymDone ? amount : 0) + cardio,
-        target: 2 * amount,
-        label: `${gymDone ? 'treino feito' : 'falta o treino'}, ${cardio} de ${amount} min de cardio`,
-      };
-    }
     case 'manual':
       return { progress: manualDone ? 1 : 0, target: 1, label: manualDone ? 'concluído' : 'a fazer' };
   }

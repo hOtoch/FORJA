@@ -96,7 +96,8 @@ export const season1: SeasonConfig = {
       },
     },
   ],
-  // Os desafios endurecem a cada semana do mapa (semana 1 → semana 11).
+  // Os desafios endurecem a cada semana do mapa (semana 1 → semana 11) e pedem sempre algo além
+  // da rotina: nada que a semana normal já peça (treino, cardio comum, supercardio de 60 min).
   rescue: {
     challenges: [
       {
@@ -111,20 +112,11 @@ export const season1: SeasonConfig = {
       {
         id: 'cardio-longo',
         title: '{n} min de cardio',
-        description: 'Some {n} min de cardio no dia do evento.',
+        description: 'Some {n} min de cardio no dia do evento, bem além do supercardio de 1h.',
         kind: 'cardio-minutes',
-        base: 60, // 60 → 150 min
-        step: 10,
+        base: 90, // 90 → 150 min
+        step: 6,
         max: 150,
-      },
-      {
-        id: 'treino-duplo',
-        title: 'Treino e {n} min de cardio',
-        description: 'Treine e some {n} min de cardio no dia do evento.',
-        kind: 'gym-cardio',
-        base: 20, // 20 → 70 min
-        step: 5,
-        max: 70,
       },
       {
         id: 'prospeccao',

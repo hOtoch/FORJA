@@ -153,13 +153,21 @@ describe('evento de resgate', () => {
     expect(g.weeks[2].bossRescued).toBe(true);
   });
 
-  it('treino e cardio: precisa dos dois, com os minutos do nível', () => {
-    const config = only({ id: 't', title: 'Treino e {n} min de cardio', description: '', kind: 'gym-cardio', base: 20, step: 10 });
+  it('nenhum desafio é rotina: o cardio pede mais que o supercardio de 1h', () => {
+    const kinds = season1.rescue.challenges.map((c) => c.kind);
+    expect(kinds).not.toContain('gym-cardio');
+    for (const c of season1.rescue.challenges) {
+      if (c.kind === 'cardio-minutes') expect(rescueAmount(c, 1)).toBeGreaterThan(season1.cardio.superMinutes);
+    }
+  });
+
+  it('cardio do nível: 60 min não bastam quando o nível pede mais', () => {
+    const config = only({ id: 'c', title: '{n} min de cardio', description: '', kind: 'cardio-minutes', base: 90, step: 6 });
     const day = rescueDraw(3, config)!.day;
-    // semana 3: 20 + 2 × 10 = 40 min de cardio
-    const short = game([...lostWeek3(), gym(day), cardio(day, 'outro', 30)], at(day), config);
-    expect(short.rescue).toMatchObject({ amount: 40, state: 'active', progressLabel: 'treino feito, 30 de 40 min de cardio' });
-    const full = game([...lostWeek3(), gym(day), cardio(day, 'outro', 40)], at(day), config);
+    // semana 3: 90 + 2 × 6 = 102 min
+    const short = game([...lostWeek3(), superCardio(day)], at(day), config);
+    expect(short.rescue).toMatchObject({ amount: 102, state: 'active', progressLabel: '60 de 102 min' });
+    const full = game([...lostWeek3(), superCardio(day), cardio(day, 'outro', 42)], at(day), config);
     expect(full.weeks[2].bossRescued).toBe(true);
   });
 

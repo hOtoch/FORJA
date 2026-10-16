@@ -124,9 +124,9 @@ export interface ChestConfig {
 }
 
 /**
- * Desafio do evento de resgate. Os medidos pelos registros: `study-minutes` (minutos de estudo a
- * mais que a meta), `cardio-minutes` (minutos de cardio somados no dia) e `gym-cardio` (treino e
- * minutos de cardio no mesmo dia). `manual`: marcado à mão ("Concluí").
+ * Desafio do evento de resgate: sempre algo além da rotina. Os medidos pelos registros:
+ * `study-minutes` (minutos de estudo a mais que a meta) e `cardio-minutes` (minutos de cardio
+ * somados no dia, acima do supercardio). `manual`: marcado à mão ("Concluí").
  *
  * A quantidade cresce com o mapa: `base + step × (semana do chefe − 1)`, até `max`.
  * Em `title` e `description`, `{n}` vira a quantidade e `{total}` o total de estudo do dia (meta + n).
@@ -135,7 +135,7 @@ export interface RescueChallengeConfig {
   id: string;
   title: string;
   description: string;
-  kind: 'study-minutes' | 'cardio-minutes' | 'gym-cardio' | 'manual';
+  kind: 'study-minutes' | 'cardio-minutes' | 'manual';
   base: number;
   step: number;
   max?: number;
@@ -284,7 +284,7 @@ export interface RescueEvent {
   amount: number;
   target: number;
   progress: number;
-  /** Progresso pronto para a tela ("45 de 90 min", "treino feito, 10 de 40 min de cardio"). */
+  /** Progresso pronto para a tela ("45 de 90 min", "a fazer"). */
   progressLabel: string;
   /** upcoming: o dia ainda não chegou (o desafio fica em segredo); active: é hoje. */
   state: 'upcoming' | 'active' | 'done' | 'missed';
