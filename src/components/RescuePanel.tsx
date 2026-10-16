@@ -9,25 +9,13 @@ import { completeRescue, deleteRecord } from '@/app/actions';
 import { season1 } from '@/config/season1';
 import { formatBRL } from '@/lib/cardio';
 import { longDate } from '@/lib/time';
-import type { GameState, RescueEvent } from '@/lib/types';
+import type { GameState } from '@/lib/types';
 import { bossOfWeek } from './bosses';
 import { runAction, useToast } from './feedback';
 import { Medallion, Sprite } from './pixel';
 import { Meter } from './viz';
 
 const PRIZE = `${season1.xp.boss} XP e ${formatBRL(season1.fund.bossCents)} no Fundo`;
-
-function progressLabel(r: RescueEvent): string {
-  switch (r.kind) {
-    case 'study-minutes':
-    case 'cardio-minutes':
-      return `${Math.min(r.progress, r.target)} de ${r.target} min`;
-    case 'gym-cardio':
-      return `${r.progress} de 2`;
-    case 'manual':
-      return r.progress > 0 ? 'concluído' : 'a fazer';
-  }
-}
 
 export function RescuePanel({ state }: { state: GameState }) {
   const toast = useToast();
@@ -58,8 +46,8 @@ export function RescuePanel({ state }: { state: GameState }) {
   if (r.state === 'upcoming') {
     body = (
       <p className="text-body">
-        {boss.name} escapou na semana {r.weekIndex}. Em algum dia desta semana aparece um evento de resgate: cumpra
-        o desafio daquele dia para derrotá-lo e ganhar {PRIZE}.
+        {boss.name} escapou na semana {r.weekIndex}. Em algum dia desta semana aparece um evento de resgate de
+        nível {r.level} ({r.tier}): cumpra o desafio daquele dia para derrotá-lo e ganhar {PRIZE}.
       </p>
     );
   } else if (r.state === 'done') {
@@ -83,14 +71,16 @@ export function RescuePanel({ state }: { state: GameState }) {
   } else {
     body = (
       <div className="band" style={{ borderLeftColor: 'var(--cta)' }} role="status">
-        <p className="text-micro font-bold uppercase tracking-wide text-muted">Desafio de hoje</p>
+        <p className="text-micro font-bold uppercase tracking-wide text-muted">
+          Desafio de hoje · nível {r.level} ({r.tier})
+        </p>
         <p className="text-lead font-bold">{r.title}</p>
         <p className="text-body text-muted">{r.description}</p>
         <div className="mt-2 flex items-center gap-3">
           <div className="flex-1">
-            <Meter value={r.progress} max={r.target} color="var(--cta)" label={`Progresso do resgate: ${progressLabel(r)}`} />
+            <Meter value={r.progress} max={r.target} color="var(--cta)" label={`Progresso do resgate: ${r.progressLabel}`} />
           </div>
-          <span className="shrink-0 text-small font-bold num">{progressLabel(r)}</span>
+          <span className="shrink-0 text-right text-small font-bold num">{r.progressLabel}</span>
         </div>
         {r.kind === 'manual' ? (
           <button type="button" className="btn btn-ink mt-3" disabled={pending} onClick={done}>

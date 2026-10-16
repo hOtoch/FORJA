@@ -96,39 +96,53 @@ export const season1: SeasonConfig = {
       },
     },
   ],
+  // Os desafios endurecem a cada semana do mapa (semana 1 → semana 11).
   rescue: {
     challenges: [
       {
         id: 'estudo-extra',
-        title: 'Estudar 1h a mais',
-        description: 'Estude 2h no dia do evento: a meta de 1h e mais 1h.',
+        title: 'Estudar {n} min a mais',
+        description: 'Estude {total} min no dia do evento: a meta de 1h e mais {n} min.',
         kind: 'study-minutes',
-        target: 120,
+        base: 60, // 60 → 180 min a mais
+        step: 15,
+        max: 180,
       },
       {
-        id: 'cardio-1h',
-        title: '1h de cardio',
-        description: 'Some 60 min de cardio no dia do evento.',
+        id: 'cardio-longo',
+        title: '{n} min de cardio',
+        description: 'Some {n} min de cardio no dia do evento.',
         kind: 'cardio-minutes',
-        target: 60,
+        base: 60, // 60 → 150 min
+        step: 10,
+        max: 150,
       },
       {
         id: 'treino-duplo',
-        title: 'Treino e cardio',
-        description: 'Treine e faça um cardio no dia do evento.',
+        title: 'Treino e {n} min de cardio',
+        description: 'Treine e some {n} min de cardio no dia do evento.',
         kind: 'gym-cardio',
+        base: 20, // 20 → 70 min
+        step: 5,
+        max: 70,
       },
       {
         id: 'prospeccao',
-        title: 'Prospectar 20 clientes',
-        description: 'Aborde 20 clientes em potencial no dia do evento.',
+        title: 'Prospectar {n} clientes',
+        description: 'Aborde {n} clientes em potencial no dia do evento.',
         kind: 'manual',
+        base: 20, // 20 → 60 clientes
+        step: 4,
+        max: 60,
       },
       {
         id: 'leitura',
-        title: 'Ler 30 páginas',
-        description: 'Leia 30 páginas de um livro no dia do evento.',
+        title: 'Ler {n} páginas',
+        description: 'Leia {n} páginas de um livro no dia do evento.',
         kind: 'manual',
+        base: 30, // 30 → 80 páginas
+        step: 5,
+        max: 80,
       },
     ],
   },

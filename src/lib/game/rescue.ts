@@ -1,6 +1,7 @@
 // Evento de resgate: o chefe que escapou numa semana ganha uma segunda chance num dia sorteado da
 // semana seguinte. Cumprindo o desafio daquele dia, o chefe conta como derrotado (XP e Fundo; o
-// escudo, não, porque ele só vem com a semana vencida nas metas).
+// escudo, não, porque ele só vem com a semana vencida nas metas). Quanto mais avançado no mapa,
+// mais pesado o desafio.
 
 import { seasonWeeks } from '@/lib/time';
 import type { DayInfo, ForjaRecord, RescueChallengeConfig, RescueEvent, SeasonConfig } from '@/lib/types';
@@ -32,20 +33,52 @@ export function rescueDraw(
   };
 }
 
+/** Quantidade pedida pelo desafio no chefe da semana `weekIndex`. */
+export function rescueAmount(c: RescueChallengeConfig, weekIndex: number): number {
+  const n = c.base + c.step * Math.max(0, weekIndex - 1);
+  return Math.max(1, Math.round(c.max === undefined ? n : Math.min(n, c.max)));
+}
+
+/** Faixa de dificuldade pelo ponto do mapa (12 semanas: 1–3, 4–6, 7–9, 10–11). */
+export function rescueTier(weekIndex: number): string {
+  if (weekIndex <= 3) return 'fácil';
+  if (weekIndex <= 6) return 'médio';
+  if (weekIndex <= 9) return 'difícil';
+  return 'lendário';
+}
+
+const fill = (text: string, n: number, total: number) =>
+  text.replaceAll('{n}', String(n)).replaceAll('{total}', String(total));
+
 function progressOf(
   c: RescueChallengeConfig,
+  amount: number,
   d: DayInfo | undefined,
   manualDone: boolean,
-): { progress: number; target: number } {
+  config: SeasonConfig,
+): { progress: number; target: number; label: string } {
   switch (c.kind) {
-    case 'study-minutes':
-      return { progress: d?.studyMinutes ?? 0, target: c.target ?? 0 };
-    case 'cardio-minutes':
-      return { progress: d?.cardioMinutes ?? 0, target: c.target ?? 0 };
-    case 'gym-cardio':
-      return { progress: (d && d.gym > 0 ? 1 : 0) + (d && d.cardio > 0 ? 1 : 0), target: 2 };
+    case 'study-minutes': {
+      const target = config.goals.studyMinutes + amount;
+      const progress = d?.studyMinutes ?? 0;
+      return { progress, target, label: `${Math.min(progress, target)} de ${target} min` };
+    }
+    case 'cardio-minutes': {
+      const progress = d?.cardioMinutes ?? 0;
+      return { progress, target: amount, label: `${Math.min(progress, amount)} de ${amount} min` };
+    }
+    case 'gym-cardio': {
+      // metade da barra é o treino, metade os minutos de cardio
+      const gymDone = Boolean(d && d.gym > 0);
+      const cardio = Math.min(d?.cardioMinutes ?? 0, amount);
+      return {
+        progress: (gymDone ? amount : 0) + cardio,
+        target: 2 * amount,
+        label: `${gymDone ? 'treino feito' : 'falta o treino'}, ${cardio} de ${amount} min de cardio`,
+      };
+    }
     case 'manual':
-      return { progress: manualDone ? 1 : 0, target: 1 };
+      return { progress: manualDone ? 1 : 0, target: 1, label: manualDone ? 'concluído' : 'a fazer' };
   }
 }
 
@@ -61,21 +94,29 @@ export function rescueEvent(
   if (!draw) return null;
   const { day, challenge } = draw;
   const manual = records.find((r) => r.kind === 'rescue' && r.data.weekIndex === weekIndex && r.day === day);
-  const { progress, target } = progressOf(
+  const amount = rescueAmount(challenge, weekIndex);
+  const total = config.goals.studyMinutes + amount;
+  const { progress, target, label } = progressOf(
     challenge,
+    amount,
     days.find((d) => d.date === day),
     Boolean(manual),
+    config,
   );
   const done = target > 0 && progress >= target;
   return {
     weekIndex,
     day,
     challengeId: challenge.id,
-    title: challenge.title,
-    description: challenge.description,
+    title: fill(challenge.title, amount, total),
+    description: fill(challenge.description, amount, total),
     kind: challenge.kind,
+    level: weekIndex,
+    tier: rescueTier(weekIndex),
+    amount,
     target,
     progress,
+    progressLabel: label,
     state: done ? 'done' : today < day ? 'upcoming' : today === day ? 'active' : 'missed',
     recordId: manual?.id ?? null,
   };

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { season1 } from '@/config/season1';
 import type { ForjaRecord, RescueChallengeConfig, RescueRecord, SeasonConfig } from '@/lib/types';
-import { rescueDraw } from './rescue';
+import { rescueAmount, rescueDraw } from './rescue';
 import { at, cardio, dayOf, game, gym, perfectWeek, study, studyRange, superCardio } from './test-helpers';
 
 // semana 3: segunda 19/10 a domingo 25/10, sem folgas; a 4 vai de 26/10 a 01/11
@@ -134,10 +134,10 @@ describe('evento de resgate', () => {
   });
 
   it('estudo extra: 2h no dia do evento derrota o chefe e paga XP e Fundo', () => {
-    const config = only({ id: 'e', title: 'Estudar 1h a mais', description: '', kind: 'study-minutes', target: 120 });
+    const config = only({ id: 'e', title: 'Estudar {n} min a mais', description: '', kind: 'study-minutes', base: 60, step: 0 });
     const day = rescueDraw(3, config)!.day;
     const before = game(lostWeek3(), at(day), config);
-    expect(before.rescue).toMatchObject({ state: 'active', progress: 0, target: 120 });
+    expect(before.rescue).toMatchObject({ state: 'active', progress: 0, target: 120, title: 'Estudar 60 min a mais' });
     expect(before.status.reasons.some((r) => r.includes('Evento de resgate hoje'))).toBe(true);
 
     const after = game([...lostWeek3(), study(day, 120)], at(day, '22:00'), config);
@@ -147,14 +147,44 @@ describe('evento de resgate', () => {
   });
 
   it('1h de cardio: soma os cardios do dia', () => {
-    const config = only({ id: 'c', title: '1h de cardio', description: '', kind: 'cardio-minutes', target: 60 });
+    const config = only({ id: 'c', title: '{n} min de cardio', description: '', kind: 'cardio-minutes', base: 60, step: 0 });
     const day = rescueDraw(3, config)!.day;
     const g = game([...lostWeek3(), cardio(day, 'eliptico', 30), cardio(day, 'outro', 30)], at(day), config);
     expect(g.weeks[2].bossRescued).toBe(true);
   });
 
+  it('treino e cardio: precisa dos dois, com os minutos do nível', () => {
+    const config = only({ id: 't', title: 'Treino e {n} min de cardio', description: '', kind: 'gym-cardio', base: 20, step: 10 });
+    const day = rescueDraw(3, config)!.day;
+    // semana 3: 20 + 2 × 10 = 40 min de cardio
+    const short = game([...lostWeek3(), gym(day), cardio(day, 'outro', 30)], at(day), config);
+    expect(short.rescue).toMatchObject({ amount: 40, state: 'active', progressLabel: 'treino feito, 30 de 40 min de cardio' });
+    const full = game([...lostWeek3(), gym(day), cardio(day, 'outro', 40)], at(day), config);
+    expect(full.weeks[2].bossRescued).toBe(true);
+  });
+
+  it('fica mais difícil a cada semana do mapa, até o teto', () => {
+    const byId = (id: string) => season1.rescue.challenges.find((c) => c.id === id)!;
+    for (const c of season1.rescue.challenges) {
+      const amounts = Array.from({ length: 11 }, (_, i) => rescueAmount(c, i + 1));
+      for (let i = 1; i < amounts.length; i++) expect(amounts[i]).toBeGreaterThanOrEqual(amounts[i - 1]);
+      expect(amounts[10]).toBeGreaterThan(amounts[0]);
+    }
+    expect(rescueAmount(byId('prospeccao'), 1)).toBe(20);
+    expect(rescueAmount(byId('prospeccao'), 11)).toBe(60);
+    expect(rescueAmount(byId('estudo-extra'), 1)).toBe(60);
+    expect(rescueAmount(byId('estudo-extra'), 11)).toBe(180);
+  });
+
+  it('o evento mostra o nível e a quantidade no texto', () => {
+    const config = only({ id: 'p', title: 'Prospectar {n} clientes', description: 'Aborde {n}.', kind: 'manual', base: 20, step: 4 });
+    const day = rescueDraw(3, config)!.day;
+    const g = game(lostWeek3(), at(day), config);
+    expect(g.rescue).toMatchObject({ level: 3, tier: 'fácil', amount: 28, title: 'Prospectar 28 clientes', description: 'Aborde 28.' });
+  });
+
   it('desafio manual: vale com o "Concluí" no dia do evento', () => {
-    const config = only({ id: 'p', title: 'Prospectar 20 clientes', description: '', kind: 'manual' });
+    const config = only({ id: 'p', title: 'Prospectar {n} clientes', description: '', kind: 'manual', base: 20, step: 4 });
     const day = rescueDraw(3, config)!.day;
     const g = game([...lostWeek3(), rescueDone(day, 3)], at(day), config);
     expect(g.rescue).toMatchObject({ state: 'done', recordId: 'resgate-3' });
@@ -162,14 +192,14 @@ describe('evento de resgate', () => {
   });
 
   it('passou o dia sem cumprir: o chefe fica de pé', () => {
-    const config = only({ id: 'p', title: 'Prospectar 20 clientes', description: '', kind: 'manual' });
+    const config = only({ id: 'p', title: 'Prospectar {n} clientes', description: '', kind: 'manual', base: 20, step: 4 });
     const g = game(lostWeek3(), at('2026-11-02'), config);
     expect(g.weeks[2].rescue?.state).toBe('missed');
     expect(g.weeks[2].bossDefeated).toBe(false);
   });
 
   it('antes do dia, o evento fica para depois', () => {
-    const config = only({ id: 'p', title: 'Prospectar 20 clientes', description: '', kind: 'manual' });
+    const config = only({ id: 'p', title: 'Prospectar {n} clientes', description: '', kind: 'manual', base: 20, step: 4 });
     const day = rescueDraw(3, config)!.day;
     if (day > '2026-10-26') expect(game(lostWeek3(), at('2026-10-26'), config).rescue?.state).toBe('upcoming');
   });
