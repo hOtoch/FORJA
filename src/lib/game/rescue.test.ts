@@ -28,11 +28,11 @@ describe('compensação de horas na semana', () => {
       ...week3Training(),
     ];
     const g = game(records, at('2026-10-26'));
-    expect(dayOf(g, '2026-10-22').studyRedeemed).toBe(true);
+    expect(dayOf(g, '2026-10-22').dayRedeemed).toBe(true);
     expect(g.weeks[2]).toMatchObject({
-      studyDaysMet: 7,
-      studyDaysRedeemed: 1,
-      studyMinutesOwed: 0,
+      daysMet: 7,
+      daysRedeemed: 1,
+      minutesOwed: 0,
       shieldDays: 0,
       bossDefeated: true,
       bossRescued: false,
@@ -48,8 +48,8 @@ describe('compensação de horas na semana', () => {
       ...week3Training(),
     ];
     const g = game(records, at('2026-10-26'));
-    expect(dayOf(g, '2026-10-22')).toMatchObject({ shieldUsed: true, studyRedeemed: true });
-    expect(g.weeks[2]).toMatchObject({ shieldDays: 0, studyDaysMet: 7, bossDefeated: true });
+    expect(dayOf(g, '2026-10-22')).toMatchObject({ shieldUsed: true, dayRedeemed: true });
+    expect(g.weeks[2]).toMatchObject({ shieldDays: 0, daysMet: 7, bossDefeated: true });
   });
 
   it('minutos a mais de vários dias somam; o que não fecha um dia fica devendo', () => {
@@ -61,29 +61,29 @@ describe('compensação de horas na semana', () => {
       ...studyRange('2026-10-23', W3.end),
     ];
     const g = game(records, at('2026-10-26'));
-    expect(dayOf(g, '2026-10-21').studyRedeemed).toBe(true);
-    expect(dayOf(g, '2026-10-22').studyRedeemed).toBe(false);
-    expect(g.weeks[2]).toMatchObject({ studyDaysMet: 6, studyMinutesOwed: 50, studySurplusMinutes: 0 });
+    expect(dayOf(g, '2026-10-21').dayRedeemed).toBe(true);
+    expect(dayOf(g, '2026-10-22').dayRedeemed).toBe(false);
+    expect(g.weeks[2]).toMatchObject({ daysMet: 6, minutesOwed: 50, surplusMinutes: 0 });
   });
 
   it('hoje não é compensado, mas o que passa da meta hoje já cobre ontem', () => {
     const records = [study('2026-10-19', 60), study('2026-10-21', 120)];
     const g = game(records, at('2026-10-21', '20:00'));
-    expect(dayOf(g, '2026-10-20').studyRedeemed).toBe(true);
+    expect(dayOf(g, '2026-10-20').dayRedeemed).toBe(true);
     const early = game([study('2026-10-19', 120)], at('2026-10-20', '09:00'));
-    expect(dayOf(early, '2026-10-20').studyRedeemed).toBe(false);
+    expect(dayOf(early, '2026-10-20').dayRedeemed).toBe(false);
   });
 
   it('não vale entre semanas', () => {
     const records = [study('2026-10-18', 180), ...studyRange('2026-10-20', W3.end)];
     const g = game(records, at('2026-10-26'));
-    expect(dayOf(g, '2026-10-19').studyRedeemed).toBe(false);
+    expect(dayOf(g, '2026-10-19').dayRedeemed).toBe(false);
   });
 
   it('a sequência continua contando só os dias cumpridos de fato', () => {
     const records = [study('2026-10-19', 60), study('2026-10-21', 120)];
     const g = game(records, at('2026-10-22'));
-    expect(dayOf(g, '2026-10-20')).toMatchObject({ studyMet: false, studyRedeemed: true, heat: 0 });
+    expect(dayOf(g, '2026-10-20')).toMatchObject({ dayMet: false, dayRedeemed: true, heat: 0 });
   });
 });
 
@@ -134,7 +134,7 @@ describe('evento de resgate', () => {
   });
 
   it('estudo extra: 2h no dia do evento derrota o chefe e paga XP e Fundo', () => {
-    const config = only({ id: 'e', title: 'Estudar {n} min a mais', description: '', kind: 'study-minutes', base: 60, step: 0 });
+    const config = only({ id: 'e', title: 'Estudar {n} min a mais', description: '', kind: 'block-minutes', block: 'estudo', base: 60, step: 0 });
     const day = rescueDraw(3, config)!.day;
     const before = game(lostWeek3(), at(day), config);
     expect(before.rescue).toMatchObject({ state: 'active', progress: 0, target: 120, title: 'Estudar 60 min a mais' });

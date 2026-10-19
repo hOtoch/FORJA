@@ -4,7 +4,7 @@
 import { courseCatalog } from '@/config/season1';
 import { gameDay } from '@/lib/time';
 import { timerView } from '@/lib/timer';
-import type { CourseCatalog, ForjaRecord, GameState, SeasonConfig, TimerState } from '@/lib/types';
+import type { CourseCatalog, ForjaRecord, GameState, SeasonConfig, Task, TimerState } from '@/lib/types';
 import { computeChests } from './chests';
 import { computeCourses } from './courses';
 import { buildDays, dayIndexOf, phaseOf, reserveBreakDays } from './days';
@@ -20,7 +20,7 @@ export function computeGameState(
   timer: TimerState | null,
   config: SeasonConfig,
   now: Date,
-  catalog: CourseCatalog = courseCatalog,
+  { catalog = courseCatalog, tasks = [] }: { catalog?: CourseCatalog; tasks?: Task[] } = {},
 ): GameState {
   const today = gameDay(now, config.timeZone, config.dayStartHour);
   const phase = phaseOf(today, config);
@@ -30,7 +30,7 @@ export function computeGameState(
   const weeks = buildWeeks(streak.days, records, config, today);
 
   const courses = computeCourses(records, catalog, config, today);
-  const xp = computeXp(records, weeks, courses.events, config);
+  const xp = computeXp(records, weeks, courses.events, config, tasks);
   const fundByDay = dayFundCents(streak.days, weeks, records, config);
   const days = streak.days.map((d) => ({ ...d, xp: xp.byDay.get(d.date) ?? 0, fundCents: fundByDay.get(d.date) ?? 0 }));
 
@@ -76,6 +76,11 @@ export function computeGameState(
       canUseToday: phase === 'active' && reserveLeft > 0 && todayInfo !== null && todayInfo.breakKind === null,
     },
     timer: timer ? timerView(timer, now, config.timer) : null,
+    tasks: {
+      open: tasks.filter((t) => !t.doneDay),
+      // as concluídas mais recentes primeiro
+      done: tasks.filter((t) => t.doneDay).sort((a, b) => (b.doneAt ?? '').localeCompare(a.doneAt ?? '')),
+    },
     status: computeStatus({
       config,
       phase,

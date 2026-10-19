@@ -2,7 +2,7 @@
 
 // ---------- Registros (o que fica guardado) ----------
 
-export type RecordKind = 'study' | 'gym' | 'cardio' | 'break' | 'deposit' | 'client' | 'rescue';
+export type RecordKind = 'study' | 'work' | 'count' | 'gym' | 'cardio' | 'break' | 'deposit' | 'client' | 'rescue';
 
 export interface BaseRecord<K extends RecordKind, D> {
   id: string;
@@ -25,8 +25,26 @@ export type StudyRecord = BaseRecord<
     endedAt?: string;
     /** Aulas concluídas nesta sessão. */
     lessonIds: number[];
+    /** O que foi aprendido, escrito ao encerrar (obrigatório desde a temporada 2). */
+    summary?: string;
   }
 >;
+
+/** Tempo num bloco da rotina que não é estudo de curso (prospecção, vagas, projeto, LinkedIn). */
+export type WorkRecord = BaseRecord<
+  'work',
+  {
+    block: string;
+    minutes: number;
+    source: 'timer' | 'manual';
+    startedAt?: string;
+    endedAt?: string;
+    note?: string;
+  }
+>;
+
+/** Contador da rotina (candidaturas enviadas, contatos de prospecção, posts no LinkedIn). */
+export type CountRecord = BaseRecord<'count', { counter: string; amount: number }>;
 
 export type GymRecord = BaseRecord<'gym', Record<string, never>>;
 
@@ -66,6 +84,8 @@ export type RescueRecord = BaseRecord<'rescue', { weekIndex: number }>;
 
 export type ForjaRecord =
   | StudyRecord
+  | WorkRecord
+  | CountRecord
   | GymRecord
   | CardioRecord
   | BreakRecord
@@ -76,6 +96,9 @@ export type ForjaRecord =
 // ---------- Timer em andamento (kv['timer']) ----------
 
 export interface TimerState {
+  /** Bloco da rotina; ausente = estudo (timers antigos). */
+  block?: string;
+  /** Curso, no bloco de estudo; vazio nos outros blocos. */
   courseSlug: string;
   /** ISO; define o dia do jogo da sessão. */
   startedAt: string;
@@ -86,6 +109,20 @@ export interface TimerState {
   /** ISO; última confirmação de presença (ou início/retomada). */
   lastConfirmAt: string;
   pomodoro: boolean;
+}
+
+// ---------- Tarefas avulsas (kv['tasks:<temporada>']) ----------
+
+/** Tarefa sem dia fixo. Não é um registro: pode ser editada, concluída e reaberta. */
+export interface Task {
+  id: string;
+  title: string;
+  /** Bloco da rotina a que a tarefa pertence (opcional). */
+  block: string | null;
+  createdAt: string;
+  /** Dia do jogo em que foi concluída; null = em aberto. */
+  doneDay: string | null;
+  doneAt: string | null;
 }
 
 // ---------- Catálogo de cursos (src/config/courses.json) ----------
@@ -125,20 +162,56 @@ export interface ChestConfig {
 
 /**
  * Desafio do evento de resgate: sempre algo além da rotina. Os medidos pelos registros:
- * `study-minutes` (minutos de estudo a mais que a meta) e `cardio-minutes` (minutos de cardio
- * somados no dia, acima do supercardio). `manual`: marcado à mão ("Concluí").
+ * `block-minutes` (minutos a mais que a meta do bloco `block` naquele dia), `cardio-minutes`
+ * (minutos de cardio somados no dia, acima do supercardio) e `counter` (quanto o contador `counter`
+ * soma no dia). `manual`: marcado à mão ("Concluí").
  *
  * A quantidade cresce com o mapa: `base + step × (semana do chefe − 1)`, até `max`.
- * Em `title` e `description`, `{n}` vira a quantidade e `{total}` o total de estudo do dia (meta + n).
+ * Em `title` e `description`, `{n}` vira a quantidade e `{total}` o total do bloco no dia (meta + n).
  */
 export interface RescueChallengeConfig {
   id: string;
   title: string;
   description: string;
-  kind: 'study-minutes' | 'cardio-minutes' | 'manual';
+  kind: 'block-minutes' | 'cardio-minutes' | 'counter' | 'manual';
+  block?: string;
+  counter?: string;
   base: number;
   step: number;
   max?: number;
+}
+
+export type AttrName = 'inteligencia' | 'influencia' | 'forca' | 'vigor';
+
+/**
+ * Bloco da rotina diária. `estudo` é o estudo de cursos (StudyRecord); os outros são WorkRecord.
+ * `minutes[0..6]` = meta de segunda a domingo.
+ */
+export interface BlockConfig {
+  id: string;
+  name: string;
+  /** Como aparece no meio da frase ("Faltam 40 min de {phrase} hoje"). */
+  phrase: string;
+  /** Sprite do ícone (public/pixel). */
+  icon: string;
+  minutes: [number, number, number, number, number, number, number];
+  /** Atributo que o XP do bloco alimenta. */
+  attr: AttrName;
+}
+
+/** Contador com meta semanal (vale para o chefe). */
+export interface CounterConfig {
+  id: string;
+  /** "Candidaturas" */
+  name: string;
+  /** "candidatura" / "candidaturas" */
+  unit: [string, string];
+  weekTarget: number;
+  /** Botões de soma rápida (ex.: [1, 5]). */
+  steps: number[];
+  /** XP por unidade. */
+  xp: number;
+  attr: AttrName;
 }
 
 export interface SeasonConfig {
@@ -150,8 +223,13 @@ export interface SeasonConfig {
   dayStartHour: number;
   plannedBreaks: string[];
   reserveBreaks: number;
+  /** Blocos da rotina; o dia está cumprido quando todos batem a meta daquele dia da semana. */
+  blocks: BlockConfig[];
+  /** Contadores com meta semanal (a semana final, parcial, pede a parte proporcional). */
+  counters: CounterConfig[];
+  /** O que aparece no painel. */
+  features: { fund: boolean; chests: boolean };
   goals: {
-    studyMinutes: number;
     gymPerWeek: number;
     cardioPerWeek: number;
     finalWeek: { gym: number; cardio: number; requireSuper: boolean };
@@ -164,14 +242,15 @@ export interface SeasonConfig {
     alwaysSuper: CardioModality[];
   };
   xp: {
-    perStudyMinute: number;
-    studyDailyCap: number;
+    perWorkMinute: number;
+    workDailyCap: number;
     gym: number;
     cardio: number;
     superCardio: number;
     module: number;
     course: number;
     boss: number;
+    task: number;
   };
   levelXp: (n: number) => number;
   titles: [number, string][];
@@ -222,10 +301,18 @@ export interface DayInfo {
   isToday: boolean;
   breakKind: 'planned' | 'reserve' | null;
   studyMinutes: number;
-  studyMet: boolean;
+  dayMet: boolean;
   shieldUsed: boolean;
   /** Meta não cumprida, mas compensada por minutos a mais em outros dias da mesma semana. */
-  studyRedeemed: boolean;
+  dayRedeemed: boolean;
+  /** Minutos de cada bloco no dia e a meta daquele dia da semana. */
+  blocks: DayBlock[];
+  /** Soma dos minutos de todos os blocos. */
+  workMinutes: number;
+  /** Soma das metas dos blocos (0 em dia sem meta). */
+  goalMinutes: number;
+  /** Quanto cada contador somou no dia. */
+  counts: Record<string, number>;
   gym: number;
   cardio: number;
   cardioMinutes: number;
@@ -236,6 +323,19 @@ export interface DayInfo {
   fundCents: number;
 }
 
+export interface DayBlock {
+  id: string;
+  minutes: number;
+  goal: number;
+  met: boolean;
+}
+
+export interface WeekCounter {
+  id: string;
+  count: number;
+  target: number;
+}
+
 export interface WeekInfo {
   index: number;
   start: string;
@@ -243,8 +343,8 @@ export interface WeekInfo {
   isFinal: boolean;
   isClosed: boolean;
   isCurrent: boolean;
-  studyDaysRequired: number;
-  studyDaysMet: number;
+  daysRequired: number;
+  daysMet: number;
   shieldDays: number;
   gym: number;
   gymTarget: number;
@@ -253,11 +353,15 @@ export interface WeekInfo {
   hasSuper: boolean;
   superRequired: boolean;
   /** Dias que ficaram sem a meta mas foram compensados por minutos a mais na semana. */
-  studyDaysRedeemed: number;
+  daysRedeemed: number;
   /** Minutos que ainda faltam para compensar os dias fechados sem a meta (0 = nada devendo). */
-  studyMinutesOwed: number;
+  minutesOwed: number;
+  /** O mesmo, por bloco (só os que devem). */
+  owedByBlock: Record<string, number>;
+  /** Contadores da semana contra a meta. */
+  counters: WeekCounter[];
   /** Minutos a mais na semana que ainda não foram usados para compensar nada. */
-  studySurplusMinutes: number;
+  surplusMinutes: number;
   bossDefeated: boolean;
   /** Derrotado pelo evento de resgate (e não pelas metas da semana). */
   bossRescued: boolean;
@@ -358,7 +462,7 @@ export interface GameState {
   streak: { current: number; best: number; shields: number };
   xp: {
     total: number;
-    byAttr: { inteligencia: number; forca: number; vigor: number };
+    byAttr: Record<AttrName, number>;
     level: number;
     title: string;
     levelStartXp: number;
@@ -388,6 +492,7 @@ export interface GameState {
   medals: string[];
   breaks: { reserveUsed: number; reserveLeft: number; canUseToday: boolean };
   timer: TimerView | null;
+  tasks: { open: Task[]; done: Task[] };
   status: {
     studyDone: boolean;
     weekAtRisk: boolean;

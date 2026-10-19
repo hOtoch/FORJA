@@ -17,7 +17,7 @@ describe('sequência e escudos', () => {
     expect(dayOf(g, '2026-10-08').shieldUsed).toBe(true);
     expect(g.streak).toEqual({ current: 3, best: 3, shields: 0 });
     expect(g.yesterdayMissedUnprotected).toBe(true);
-    expect(g.status.reasons).toContain('Ontem ficou sem estudo. Se hoje também ficar, a sequência quebra.');
+    expect(g.status.reasons).toContain('Ontem ficou sem a meta. Se hoje também ficar, a sequência quebra.');
   });
 
   it('não gasta escudo quando não há sequência para proteger', () => {

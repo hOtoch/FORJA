@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createFileStore, createNeonStore, getStore } from './store';
-import type { CardioRecord, ForjaRecord, GymRecord, StudyRecord, TimerState } from './types';
+import type { CardioRecord, ForjaRecord, GymRecord, StudyRecord, Task, TimerState } from './types';
 
 function study(id: string, day: string, createdAt: string, minutes = 30): StudyRecord {
   return {
@@ -40,6 +40,18 @@ describe('store em arquivo', () => {
 
   afterEach(async () => {
     await rm(dir, { recursive: true, force: true });
+  });
+
+  it('guarda as tarefas por temporada e o timer continua à parte', async () => {
+    const store = createFileStore(file);
+    const task: Task = { id: 't1', title: 'Atualizar o currículo', block: 'vagas', createdAt: '2026-10-19T12:00:00.000Z', doneDay: null, doneAt: null };
+    expect(await store.getTasks('s2')).toEqual([]);
+    await store.setTasks('s2', [task]);
+    await store.setTimer(timer);
+    expect(await store.getTasks('s2')).toEqual([task]);
+    expect(await store.getTasks('s1')).toEqual([]);
+    expect(await store.getTimer()).toEqual(timer);
+    expect(await createFileStore(file).getTasks('s2')).toEqual([task]);
   });
 
   it('começa vazio sem criar arquivo', async () => {

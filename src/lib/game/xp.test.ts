@@ -6,7 +6,7 @@ import { bossXpSplit, levelInfo } from './xp';
 describe('XP', () => {
   it('150 min de estudo num dia rendem 120 XP de Inteligência (teto diário)', () => {
     const g = game([study('2026-10-06', 150)], at('2026-10-07'));
-    expect(g.xp.byAttr).toEqual({ inteligencia: 120, forca: 0, vigor: 0 });
+    expect(g.xp.byAttr).toEqual({ inteligencia: 120, influencia: 0, forca: 0, vigor: 0 });
     expect(g.xp.total).toBe(120);
     expect(dayOf(g, '2026-10-06').xp).toBe(120);
   });
@@ -21,7 +21,7 @@ describe('XP', () => {
       [gym('2026-10-06'), gym('2026-10-07'), cardio('2026-10-06'), superCardio('2026-10-07'), cardio('2026-10-07', 'pelada', 30)],
       at('2026-10-08'),
     );
-    expect(g.xp.byAttr).toEqual({ inteligencia: 0, forca: 120, vigor: 20 + 60 + 60 });
+    expect(g.xp.byAttr).toEqual({ inteligencia: 0, influencia: 0, forca: 120, vigor: 20 + 60 + 60 });
   });
 
   it('registros fora da temporada também rendem XP', () => {
@@ -31,10 +31,10 @@ describe('XP', () => {
   });
 
   it('o chefe rende 100 XP divididos em 34/33/33', () => {
-    expect(bossXpSplit(season1)).toEqual({ inteligencia: 34, forca: 33, vigor: 33 });
+    expect(bossXpSplit(season1)).toEqual({ inteligencia: 34, influencia: 0, forca: 33, vigor: 33 });
     const g = game(perfectWeek(3), at('2026-10-26'));
     // 7 × 60 de estudo, 4 treinos, 4 cardios + 1 super, e o chefe no último dia da semana
-    expect(g.xp.byAttr).toEqual({ inteligencia: 420 + 34, forca: 240 + 33, vigor: 80 + 60 + 33 });
+    expect(g.xp.byAttr).toEqual({ inteligencia: 420 + 34, influencia: 0, forca: 240 + 33, vigor: 80 + 60 + 33 });
     expect(dayOf(g, '2026-10-25').xp).toBe(60 + 100);
   });
 

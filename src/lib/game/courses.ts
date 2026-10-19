@@ -10,7 +10,7 @@ import type {
   SeasonConfig,
   StudyRecord,
 } from '@/lib/types';
-import { inSeason } from './days';
+import { inSeason, STUDY_BLOCK } from './days';
 
 /** Módulo ou curso concluído por um registro (rende XP de Inteligência no dia do registro). */
 export interface CourseEvent {
@@ -26,9 +26,14 @@ export function effectiveMinutes(raw: number, config: SeasonConfig): number {
   return raw > 0 ? raw : config.courses.missingDurationMin;
 }
 
-/** Ritmo padrão: meta diária de estudo ÷ minutos de estudo por minuto de vídeo (60 ÷ 1,5 = 40). */
+/**
+ * Ritmo padrão: meta diária de estudo (a média dos dias que têm meta) ÷ minutos de estudo por
+ * minuto de vídeo (60 ÷ 1,5 = 40).
+ */
 export function defaultPace(config: SeasonConfig): number {
-  return config.goals.studyMinutes / config.courses.defaultStudyPerVideo;
+  const goals = config.blocks.find((b) => b.id === STUDY_BLOCK)?.minutes.filter((m) => m > 0) ?? [];
+  const daily = goals.length ? goals.reduce((a, b) => a + b, 0) / goals.length : 60;
+  return daily / config.courses.defaultStudyPerVideo;
 }
 
 const byChronology = (a: StudyRecord, b: StudyRecord) =>

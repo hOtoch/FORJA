@@ -1,12 +1,13 @@
 // Formatação compartilhada pela interface (pt-BR, horário de Brasília).
 
-import { season1 } from '@/config/season1';
+import { season } from '@/config/season';
+import { formatBRL } from '@/lib/cardio';
 import { addDays, shortDate } from '@/lib/time';
 import type { CourseProgress, DayInfo, GameState, Heat, LessonProgress } from '@/lib/types';
 
 const intFmt = new Intl.NumberFormat('pt-BR');
 const hmFmt = new Intl.DateTimeFormat('pt-BR', {
-  timeZone: season1.timeZone,
+  timeZone: season.timeZone,
   hour: '2-digit',
   minute: '2-digit',
 });
@@ -20,7 +21,7 @@ export function fmtPct(n: number): string {
 
 /** Data prevista: "27/12" no ano da temporada, "26/06/2027" fora dele. */
 export function projDate(date: string): string {
-  return date.slice(0, 4) === season1.start.slice(0, 4) ? shortDate(date) : `${shortDate(date)}/${date.slice(0, 4)}`;
+  return date.slice(0, 4) === season.start.slice(0, 4) ? shortDate(date) : `${shortDate(date)}/${date.slice(0, 4)}`;
 }
 
 /** 1240 → "1.240" */
@@ -108,16 +109,49 @@ function activities(day: DayInfo): string[] {
   return out;
 }
 
+/** Nome do bloco da rotina ("Prospecção"). */
+export function blockName(id: string): string {
+  return season.blocks.find((b) => b.id === id)?.name ?? id;
+}
+
+/** "1 candidatura", "3 candidaturas" */
+export function counterAmount(id: string, n: number): string {
+  const c = season.counters.find((x) => x.id === id);
+  if (!c) return String(n);
+  return `${fmtInt(n)} ${n === 1 ? c.unit[0] : c.unit[1]}`;
+}
+
+/** "2h", "1h30", "45 min" */
+export function hoursLabel(minutes: number): string {
+  const m = Math.max(0, Math.round(minutes));
+  if (m < 60) return `${m} min`;
+  const h = Math.floor(m / 60);
+  const r = m % 60;
+  return r === 0 ? `${h}h` : `${h}h${String(r).padStart(2, '0')}`;
+}
+
+/** O que um chefe derrotado rende, conforme o que a temporada usa. */
+export function bossPrize(isFinal: boolean, rescued = false): string {
+  const parts: string[] = [];
+  if (!isFinal && !rescued) parts.push('1 escudo');
+  parts.push(`${season.xp.boss} XP`);
+  if (season.features.fund) {
+    parts.push(`${formatBRL(isFinal ? season.fund.finalBossCents : season.fund.bossCents)} no Fundo`);
+  }
+  return joinPt(parts);
+}
+
 /** Estado do dia em palavras: "meta cumprida", "folga planejada"... */
 export function dayState(day: DayInfo): string {
   if (day.breakKind === 'planned') return 'folga planejada';
   if (day.breakKind === 'reserve') return 'folga de reserva';
   if (day.isFuture) return 'por forjar';
-  if (day.shieldUsed) return 'salvo por escudo';
-  if (day.studyMet) return 'meta cumprida';
-  if (day.isToday) return day.studyMinutes > 0 ? 'meta ainda não cumprida' : 'sem estudo ainda';
-  if (day.studyMinutes > 0) return 'meta não cumprida';
-  return 'sem estudo';
+  if (day.shieldUsed && !day.dayRedeemed) return 'salvo por escudo';
+  if (day.dayMet) return 'meta cumprida';
+  if (day.dayRedeemed) return 'compensado na semana';
+  if (day.isToday) return day.workMinutes > 0 ? 'meta ainda não cumprida' : 'nada ainda';
+  if (day.workMinutes > 0) return 'meta não cumprida';
+  return 'dia vazio';
 }
 
 /** Dica do segmento: "seg, 12/10: 75 min de estudo, treino e cardio". */
@@ -125,10 +159,10 @@ export function dayTooltip(day: DayInfo): string {
   const head = `${WEEKDAY_SHORT[day.weekday - 1]}, ${shortDate(day.date)}`;
   if (day.isFuture) return `${head}: por forjar`;
   const parts: string[] = [];
-  if (day.studyMinutes > 0) parts.push(`${day.studyMinutes} min de estudo`);
+  if (day.workMinutes > 0) parts.push(`${hoursLabel(day.workMinutes)} de foco`);
   parts.push(...activities(day));
   const prefix = day.breakKind ? 'folga' : day.shieldUsed ? 'salvo por escudo' : '';
-  if (parts.length === 0) return `${head}: ${prefix || (day.isToday ? 'nada ainda' : 'sem estudo')}`;
+  if (parts.length === 0) return `${head}: ${prefix || (day.isToday ? 'nada ainda' : 'dia vazio')}`;
   return `${head}: ${prefix ? `${prefix}, ` : ''}${joinPt(parts)}`;
 }
 
@@ -137,7 +171,7 @@ export function dayAriaLabel(day: DayInfo): string {
   const parts = [dayMonth(day.date)];
   if (day.isToday) parts.push('hoje');
   parts.push(dayState(day));
-  if (!day.isFuture && day.studyMinutes > 0) parts.push(`${day.studyMinutes} minutos`);
+  if (!day.isFuture && day.workMinutes > 0) parts.push(`${day.workMinutes} minutos de foco`);
   if (!day.isFuture) parts.push(...activities(day));
   return parts.join(', ');
 }
@@ -149,20 +183,22 @@ export function heatReason(day: DayInfo): string {
     return 'Folga planejada. Não mexe na sequência e não entra na nota nem no Fundo.';
   if (day.breakKind === 'reserve')
     return 'Folga de reserva. Não mexe na sequência e não entra na nota nem no Fundo.';
-  if (day.shieldUsed)
-    return 'Ferro frio, salvo por escudo. A sequência continuou, mas o dia não conta na nota nem no Fundo.';
-  if (day.heat === null) return 'Hoje ainda não tem registro. O segmento esquenta com o primeiro estudo.';
-  const goal = season1.goals.studyMinutes;
-  if (day.heat === 0) return 'Ferro frio: o dia passou sem estudo.';
-  if (day.heat === 1)
-    return `Cereja: ${day.studyMinutes} min de estudo, abaixo da meta de ${goal}.`;
+  if (day.shieldUsed && !day.dayRedeemed)
+    return 'Ferro frio, salvo por escudo. A sequência continuou, mas o dia não conta na nota nem para o chefe.';
+  if (day.heat === null) return 'Hoje ainda não tem registro. O segmento esquenta com o primeiro bloco.';
+  if (day.heat === 0) return 'Ferro frio: o dia passou sem nada registrado.';
+  if (day.heat === 1) {
+    const missing = day.blocks.filter((b) => !b.met).map((b) => `${blockName(b.id)} (${b.minutes} de ${b.goal} min)`);
+    const tail = day.dayRedeemed ? ' Compensado com minutos a mais em outro dia da semana.' : '';
+    return `Cereja: ${hoursLabel(day.workMinutes)} de foco, mas faltou ${joinPt(missing)}.${tail}`;
+  }
   const points: string[] = [];
-  if (day.studyMinutes >= 120) points.push('2h de estudo');
+  if (day.workMinutes >= day.goalMinutes + 60) points.push('1h além da meta');
   if (day.gym > 0) points.push('treino');
   if (day.cardio > 0) points.push('cardio');
-  if (day.heat === 2) return 'Brasa: meta de estudo cumprida.';
-  if (day.heat === 3) return `Palha: meta de estudo e mais 1 ponto de calor (${joinPt(points)}).`;
-  return `Incandescente: meta de estudo e mais ${points.length} pontos de calor (${joinPt(points)}).`;
+  if (day.heat === 2) return 'Brasa: todas as metas do dia cumpridas.';
+  if (day.heat === 3) return `Palha: metas do dia e mais 1 ponto de calor (${joinPt(points)}).`;
+  return `Incandescente: metas do dia e mais ${points.length} pontos de calor (${joinPt(points)}).`;
 }
 
 /** Aulas ainda não concluídas de um curso, na ordem, com o módulo (1-based). */

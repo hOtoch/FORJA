@@ -1,7 +1,7 @@
 // GET /api/export: baixa todos os registros da temporada e o timer como JSON.
 // Autenticação: cookie de sessão. Contrato: specs/001-forja-temporada-1/contracts/http-api.md
 
-import { season1 } from '@/config/season1';
+import { season } from '@/config/season';
 import { hasSession } from '@/lib/auth';
 import { getStore } from '@/lib/store';
 import { gameDay, now } from '@/lib/time';
@@ -12,12 +12,16 @@ export async function GET() {
   }
 
   const store = getStore();
-  const [records, timer] = await Promise.all([store.listRecords(season1.id), store.getTimer()]);
+  const [records, timer, tasks] = await Promise.all([
+    store.listRecords(season.id),
+    store.getTimer(),
+    store.getTasks(season.id),
+  ]);
   const instant = now();
-  const day = gameDay(instant, season1.timeZone, season1.dayStartHour);
+  const day = gameDay(instant, season.timeZone, season.dayStartHour);
 
   const body = JSON.stringify(
-    { exportedAt: instant.toISOString(), seasonId: season1.id, records, timer },
+    { exportedAt: instant.toISOString(), seasonId: season.id, records, timer, tasks },
     null,
     2,
   );
@@ -25,7 +29,7 @@ export async function GET() {
   return new Response(body, {
     headers: {
       'Content-Type': 'application/json; charset=utf-8',
-      'Content-Disposition': `attachment; filename="forja-${season1.id}-${day}.json"`,
+      'Content-Disposition': `attachment; filename="forja-${season.id}-${day}.json"`,
       'Cache-Control': 'no-store',
     },
   });

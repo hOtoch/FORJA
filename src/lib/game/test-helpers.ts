@@ -8,13 +8,16 @@ import type {
   CardioModality,
   CardioRecord,
   ClientRecord,
+  CountRecord,
   DepositRecord,
   ForjaRecord,
   GameState,
   GymRecord,
   SeasonConfig,
   StudyRecord,
+  Task,
   TimerState,
+  WorkRecord,
 } from '@/lib/types';
 import { computeGameState } from './index';
 
@@ -70,6 +73,26 @@ export function deposit(day: string, weekIndex: number, amountCents: number): De
   return { id: nextId(), seasonId: 's1', kind: 'deposit', day, createdAt: created(day), data: { weekIndex, amountCents } };
 }
 
+/** Minutos num bloco da rotina (não estudo de curso). */
+export function work(day: string, block: string, minutes: number, seasonId = 's2'): WorkRecord {
+  return { id: nextId(), seasonId, kind: 'work', day, createdAt: created(day), data: { block, minutes, source: 'manual' } };
+}
+
+export function count(day: string, counter: string, amount: number, seasonId = 's2'): CountRecord {
+  return { id: nextId(), seasonId, kind: 'count', day, createdAt: created(day), data: { counter, amount } };
+}
+
+export function task(title: string, doneDay: string | null = null): Task {
+  return {
+    id: nextId(),
+    title,
+    block: null,
+    createdAt: '2026-10-19T12:00:00.000Z',
+    doneDay,
+    doneAt: doneDay ? `${doneDay}T18:00:00.000Z` : null,
+  };
+}
+
 export function client(day: string, contractCents: number): ClientRecord {
   return {
     id: nextId(),
@@ -117,8 +140,9 @@ export function game(
   now: Date,
   config: SeasonConfig = season1,
   timer: TimerState | null = null,
+  tasks: Task[] = [],
 ): GameState {
-  return computeGameState(records, timer, config, now);
+  return computeGameState(records, timer, config, now, { tasks });
 }
 
 export const dayOf = (g: GameState, date: string) => {

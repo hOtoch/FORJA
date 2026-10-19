@@ -4,7 +4,7 @@
 
 import { useState, useTransition } from 'react';
 import { addClient } from '@/app/actions';
-import { season1 } from '@/config/season1';
+import { season } from '@/config/season';
 import { clientBonusCents, formatBRL } from '@/lib/cardio';
 import { runAction, useToast } from '../feedback';
 
@@ -26,7 +26,7 @@ export function ClientDialog({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<string | null>(null);
 
   const contractCents = parseBRL(value);
-  const bonus = Number.isFinite(contractCents) ? clientBonusCents(contractCents, season1) : null;
+  const bonus = Number.isFinite(contractCents) ? clientBonusCents(contractCents, season) : null;
 
   function save() {
     if (!Number.isFinite(contractCents)) {
@@ -91,10 +91,10 @@ export function ClientDialog({ onClose }: { onClose: () => void }) {
         {bonus !== null ? (
           <>
             Bônus de <span className="font-bold text-money num">{formatBRL(bonus)}</span> para o Fundo (
-            {season1.fund.clientBonusPct}% do contrato).
+            {season.fund.clientBonusPct}% do contrato).
           </>
         ) : (
-          `O Fundo recebe ${season1.fund.clientBonusPct}% do valor do contrato.`
+          `O Fundo recebe ${season.fund.clientBonusPct}% do valor do contrato.`
         )}
       </p>
 

@@ -1,7 +1,7 @@
 // Fundo Réveillon: quanto foi ganho, depositado e o que está pendente (data-model.md, "Fundo").
 
 import type { DayInfo, ForjaRecord, GameState, SeasonConfig, WeekInfo } from '@/lib/types';
-import { inSeason, studyCountsForWeek } from './days';
+import { inSeason, dayCountsForWeek } from './days';
 import { tallyWeek } from './weeks';
 
 export function computeFund(weeks: WeekInfo[], records: ForjaRecord[], config: SeasonConfig): GameState['fund'] {
@@ -48,7 +48,7 @@ export function dayFundCents(
     for (const d of days) {
       if (d.weekIndex !== w.index) continue;
       let cents = 0;
-      if (studyCountsForWeek(d)) cents += f.studyDayCents;
+      if (dayCountsForWeek(d)) cents += f.studyDayCents;
       const g = Math.min(d.gym, gymLeft);
       gymLeft -= g;
       cents += g * f.gymCents;

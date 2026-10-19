@@ -3,8 +3,9 @@
 // escudo, não, porque ele só vem com a semana vencida nas metas). Quanto mais avançado no mapa,
 // mais pesado o desafio.
 
-import { seasonWeeks } from '@/lib/time';
+import { seasonWeeks, weekdayOf } from '@/lib/time';
 import type { DayInfo, ForjaRecord, RescueChallengeConfig, RescueEvent, SeasonConfig } from '@/lib/types';
+import { blockGoal } from './days';
 
 /** FNV-1a de 32 bits: o "sorteio" sai sempre igual para a mesma temporada e semana. */
 function hash(text: string): number {
@@ -50,18 +51,29 @@ export function rescueTier(weekIndex: number): string {
 const fill = (text: string, n: number, total: number) =>
   text.replaceAll('{n}', String(n)).replaceAll('{total}', String(total));
 
+/** Meta do bloco do desafio no dia do evento. */
+function blockGoalOn(c: RescueChallengeConfig, day: string, config: SeasonConfig): number {
+  const block = config.blocks.find((b) => b.id === c.block);
+  return block ? blockGoal(block, weekdayOf(day)) : 0;
+}
+
 function progressOf(
   c: RescueChallengeConfig,
   amount: number,
+  day: string,
   d: DayInfo | undefined,
   manualDone: boolean,
   config: SeasonConfig,
 ): { progress: number; target: number; label: string } {
   switch (c.kind) {
-    case 'study-minutes': {
-      const target = config.goals.studyMinutes + amount;
-      const progress = d?.studyMinutes ?? 0;
+    case 'block-minutes': {
+      const target = blockGoalOn(c, day, config) + amount;
+      const progress = d?.blocks.find((b) => b.id === c.block)?.minutes ?? 0;
       return { progress, target, label: `${Math.min(progress, target)} de ${target} min` };
+    }
+    case 'counter': {
+      const progress = d?.counts[c.counter ?? ''] ?? 0;
+      return { progress, target: amount, label: `${Math.min(progress, amount)} de ${amount}` };
     }
     case 'cardio-minutes': {
       const progress = d?.cardioMinutes ?? 0;
@@ -85,10 +97,11 @@ export function rescueEvent(
   const { day, challenge } = draw;
   const manual = records.find((r) => r.kind === 'rescue' && r.data.weekIndex === weekIndex && r.day === day);
   const amount = rescueAmount(challenge, weekIndex);
-  const total = config.goals.studyMinutes + amount;
+  const total = blockGoalOn(challenge, day, config) + amount;
   const { progress, target, label } = progressOf(
     challenge,
     amount,
+    day,
     days.find((d) => d.date === day),
     Boolean(manual),
     config,

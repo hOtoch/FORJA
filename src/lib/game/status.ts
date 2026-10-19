@@ -27,12 +27,16 @@ export function computeStatus(input: StatusInput): GameState['status'] {
   const { config, phase, today, todayInfo, currentWeek } = input;
   const reasons: string[] = [];
 
-  const studyDone = phase !== 'active' || !todayInfo || todayInfo.studyMet || todayInfo.breakKind !== null;
+  const studyDone = phase !== 'active' || !todayInfo || todayInfo.dayMet || todayInfo.breakKind !== null;
   if (!studyDone && todayInfo) {
-    const left = config.goals.studyMinutes - todayInfo.studyMinutes;
-    reasons.push(`${plural(left, 'Falta', 'Faltam')} ${left} min de estudo hoje.`);
+    for (const b of todayInfo.blocks) {
+      const left = b.goal - b.minutes;
+      if (left <= 0) continue;
+      const phrase = config.blocks.find((x) => x.id === b.id)?.phrase ?? b.id;
+      reasons.push(`${plural(left, 'Falta', 'Faltam')} ${left} min de ${phrase} hoje.`);
+    }
     if (input.yesterdayMissedUnprotected) {
-      reasons.push('Ontem ficou sem estudo. Se hoje também ficar, a sequência quebra.');
+      reasons.push('Ontem ficou sem a meta. Se hoje também ficar, a sequência quebra.');
     }
   }
 

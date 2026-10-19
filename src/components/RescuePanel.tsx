@@ -6,16 +6,15 @@
 
 import { useTransition, type ReactNode } from 'react';
 import { completeRescue, deleteRecord } from '@/app/actions';
-import { season1 } from '@/config/season1';
-import { formatBRL } from '@/lib/cardio';
 import { longDate } from '@/lib/time';
 import type { GameState } from '@/lib/types';
 import { bossOfWeek } from './bosses';
 import { runAction, useToast } from './feedback';
+import { bossPrize } from './format';
 import { Medallion, Sprite } from './pixel';
 import { Meter } from './viz';
 
-const PRIZE = `${season1.xp.boss} XP e ${formatBRL(season1.fund.bossCents)} no Fundo`;
+const PRIZE = bossPrize(false, true);
 
 export function RescuePanel({ state }: { state: GameState }) {
   const toast = useToast();

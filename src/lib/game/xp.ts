@@ -1,40 +1,43 @@
 // XP por atributo, nível e título (data-model.md, "XP").
 
-import type { ForjaRecord, GameState, SeasonConfig, WeekInfo } from '@/lib/types';
+import type { AttrName, ForjaRecord, GameState, SeasonConfig, Task, WeekInfo } from '@/lib/types';
 import type { CourseEvent } from './courses';
-import { totalsByDay } from './days';
+import { totalsByDay, type DayTotals } from './days';
 
-export interface AttrXp {
-  inteligencia: number;
-  forca: number;
-  vigor: number;
-}
+export type AttrXp = Record<AttrName, number>;
 
-const zero = (): AttrXp => ({ inteligencia: 0, forca: 0, vigor: 0 });
+const zero = (): AttrXp => ({ inteligencia: 0, influencia: 0, forca: 0, vigor: 0 });
 const add = (a: AttrXp, b: AttrXp) => {
   a.inteligencia += b.inteligencia;
+  a.influencia += b.influencia;
   a.forca += b.forca;
   a.vigor += b.vigor;
 };
-const sum = (a: AttrXp) => a.inteligencia + a.forca + a.vigor;
+const sum = (a: AttrXp) => a.inteligencia + a.influencia + a.forca + a.vigor;
 
 /** XP do chefe dividido entre os três atributos; o resto vai para Inteligência (100 → 34/33/33). */
 export function bossXpSplit(config: SeasonConfig): AttrXp {
   const third = Math.floor(config.xp.boss / 3);
-  return { inteligencia: config.xp.boss - 2 * third, forca: third, vigor: third };
+  return { inteligencia: config.xp.boss - 2 * third, influencia: 0, forca: third, vigor: third };
 }
 
-/** Estudo (até o teto diário), treinos e cardios de um dia. */
-export function activityXp(
-  t: { studyMinutes: number; gym: number; cardio: number; superCardio: number },
-  config: SeasonConfig,
-): AttrXp {
+/**
+ * Minutos dos blocos (até o teto diário, somando todos, na ordem da configuração), contadores,
+ * treinos e cardios de um dia. Cada bloco e contador alimenta o seu atributo.
+ */
+export function activityXp(t: DayTotals, config: SeasonConfig): AttrXp {
   const x = config.xp;
-  return {
-    inteligencia: Math.min(t.studyMinutes * x.perStudyMinute, x.studyDailyCap),
-    forca: t.gym * x.gym,
-    vigor: (t.cardio - t.superCardio) * x.cardio + t.superCardio * x.superCardio,
-  };
+  const out = zero();
+  let room = x.workDailyCap;
+  for (const b of config.blocks) {
+    const xp = Math.min((t.blockMinutes[b.id] ?? 0) * x.perWorkMinute, room);
+    room -= xp;
+    out[b.attr] += xp;
+  }
+  for (const c of config.counters) out[c.attr] += (t.counts[c.id] ?? 0) * c.xp;
+  out.forca += t.gym * x.gym;
+  out.vigor += (t.cardio - t.superCardio) * x.cardio + t.superCardio * x.superCardio;
+  return out;
 }
 
 /** Nível = maior N com levelXp(N) <= total (mínimo 0); título do maior nível mínimo <= max(nível, 1). */
@@ -64,6 +67,7 @@ export function computeXp(
   weeks: WeekInfo[],
   courseEvents: CourseEvent[],
   config: SeasonConfig,
+  tasks: Task[] = [],
 ): XpState {
   const byAttr = zero();
   const byDay = new Map<string, number>();
@@ -78,6 +82,8 @@ export function computeXp(
   }
   const boss = bossXpSplit(config);
   for (const w of weeks) if (w.bossDefeated) credit(w.end, boss);
+  // tarefa concluída rende XP de Inteligência no dia em que foi concluída
+  for (const t of tasks) if (t.doneDay) credit(t.doneDay, { ...zero(), inteligencia: config.xp.task });
 
   const total = sum(byAttr);
   return { total, byAttr, ...levelInfo(total, config), byDay };

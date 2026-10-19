@@ -1,7 +1,7 @@
 // Baús (revisão 2): cinco quadros lado a lado, cada um com o baú desenhado, um nome curto,
 // o progresso até abrir e o prêmio.
 
-import { season1 } from '@/config/season1';
+import { season } from '@/config/season';
 import { shortDate } from '@/lib/time';
 import type { ChestConfig, ChestState, GameState } from '@/lib/types';
 import { Sprite } from './pixel';
@@ -48,7 +48,7 @@ export function ChestsPanel({ state }: { state: GameState }) {
       </div>
       <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {state.chests.map((c) => {
-          const cfg = season1.chests.find((x) => x.id === c.id);
+          const cfg = season.chests.find((x) => x.id === c.id);
           if (!cfg) return null;
           const p = progress(c, cfg, state);
           const status = c.state === 'opened' ? 'Aberto' : c.state === 'failed' ? 'Não abriu' : 'Trancado';

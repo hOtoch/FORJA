@@ -70,7 +70,7 @@ function seedOf(date: string): Required<DaySeed> {
 }
 
 function heatOf(minutes: number, gym: number, cardio: number): Heat {
-  if (minutes < season1.goals.studyMinutes) return minutes > 0 ? 1 : 0;
+  if (minutes < 60) return minutes > 0 ? 1 : 0;
   const points = (minutes >= 120 ? 1 : 0) + (gym > 0 ? 1 : 0) + (cardio > 0 ? 1 : 0);
   return (2 + Math.min(points, 2)) as Heat;
 }
@@ -83,17 +83,17 @@ function buildDays(today: string): DayInfo[] {
     const isToday = date === today;
     const breakKind = season1.plannedBreaks.includes(date) ? ('planned' as const) : null;
     const studyMinutes = sum(seed.study);
-    const studyMet = studyMinutes >= season1.goals.studyMinutes;
+    const dayMet = studyMinutes >= 60;
     const cardio = seed.cardio.length;
     const superCardio = seed.cardio.filter(([m, min]) => isSuperCardio(m, min, season1)).length;
     const empty = studyMinutes === 0 && seed.gym === 0 && cardio === 0;
     const heat: Heat | null = isFuture || (isToday && empty) ? null : heatOf(studyMinutes, seed.gym, cardio);
     const xp =
-      Math.min(studyMinutes, season1.xp.studyDailyCap) +
+      Math.min(studyMinutes, season1.xp.workDailyCap) +
       seed.gym * season1.xp.gym +
       (cardio - superCardio) * season1.xp.cardio +
       superCardio * season1.xp.superCardio;
-    const counts = studyMet && !breakKind && !seed.shield;
+    const counts = dayMet && !breakKind && !seed.shield;
     const fundCents =
       (counts ? season1.fund.studyDayCents : 0) +
       seed.gym * season1.fund.gymCents +
@@ -107,12 +107,16 @@ function buildDays(today: string): DayInfo[] {
       isToday,
       breakKind,
       studyMinutes,
-      studyMet,
+      dayMet,
       shieldUsed: seed.shield,
-      studyRedeemed: false,
+      dayRedeemed: false,
       gym: seed.gym,
       cardio,
       cardioMinutes: sum(seed.cardio.map(([, min]) => min)),
+      blocks: [{ id: 'estudo', minutes: studyMinutes, goal: 60, met: dayMet }],
+      workMinutes: studyMinutes,
+      goalMinutes: 60,
+      counts: {},
       superCardio,
       heat,
       xp,
@@ -127,8 +131,8 @@ function buildWeeks(days: DayInfo[], today: string): WeekInfo[] {
     const gymTarget = w.isFinal ? season1.goals.finalWeek.gym : season1.goals.gymPerWeek;
     const cardioTarget = w.isFinal ? season1.goals.finalWeek.cardio : season1.goals.cardioPerWeek;
     const superRequired = w.isFinal ? season1.goals.finalWeek.requireSuper : true;
-    const studyDaysRequired = ds.filter((d) => !d.breakKind).length;
-    const studyDaysMet = ds.filter((d) => !d.breakKind && d.studyMet && !d.shieldUsed && !d.isFuture).length;
+    const daysRequired = ds.filter((d) => !d.breakKind).length;
+    const daysMet = ds.filter((d) => !d.breakKind && d.dayMet && !d.shieldUsed && !d.isFuture).length;
     const shieldDays = ds.filter((d) => d.shieldUsed).length;
     const gym = sum(ds.map((d) => d.gym));
     const cardio = sum(ds.map((d) => d.cardio));
@@ -136,14 +140,14 @@ function buildWeeks(days: DayInfo[], today: string): WeekInfo[] {
     const effective = hasSuper || !superRequired ? cardio : Math.min(cardio, season1.goals.cardioMaxWithoutSuper);
     const isClosed = w.end < today;
     const bossDefeated =
-      studyDaysMet === studyDaysRequired &&
+      daysMet === daysRequired &&
       shieldDays === 0 &&
       gym >= gymTarget &&
       effective >= cardioTarget &&
       (hasSuper || !superRequired);
     const clientCents = ds.some((d) => d.date === CLIENT.day) ? Math.round(CLIENT.contractCents * 0.05) : 0;
     const fundCents =
-      studyDaysMet * season1.fund.studyDayCents +
+      daysMet * season1.fund.studyDayCents +
       Math.min(gym, gymTarget) * season1.fund.gymCents +
       Math.min(effective, cardioTarget) * season1.fund.cardioCents +
       (bossDefeated ? (w.isFinal ? season1.fund.finalBossCents : season1.fund.bossCents) : 0) +
@@ -155,8 +159,8 @@ function buildWeeks(days: DayInfo[], today: string): WeekInfo[] {
       isFinal: w.isFinal,
       isClosed,
       isCurrent: w.start <= today && today <= w.end,
-      studyDaysRequired,
-      studyDaysMet,
+      daysRequired,
+      daysMet,
       shieldDays,
       gym,
       gymTarget,
@@ -164,9 +168,11 @@ function buildWeeks(days: DayInfo[], today: string): WeekInfo[] {
       cardioTarget,
       hasSuper,
       superRequired,
-      studyDaysRedeemed: 0,
-      studyMinutesOwed: 0,
-      studySurplusMinutes: 0,
+      daysRedeemed: 0,
+      minutesOwed: 0,
+      owedByBlock: {},
+      counters: [],
+      surplusMinutes: 0,
       bossDefeated,
       bossRescued: false,
       rescue: null,
@@ -234,7 +240,7 @@ function buildState(timer: TimerView | null): GameState {
 
   // XP
   const past = days.filter((d) => !d.isFuture);
-  const studyXp = sum(past.map((d) => Math.min(d.studyMinutes, season1.xp.studyDailyCap)));
+  const studyXp = sum(past.map((d) => Math.min(d.studyMinutes, season1.xp.workDailyCap)));
   const gymXp = sum(past.map((d) => d.gym)) * season1.xp.gym;
   const cardioXp = sum(past.map((d) => (d.cardio - d.superCardio) * season1.xp.cardio + d.superCardio * season1.xp.superCardio));
   const modulesXp = 3 * season1.xp.module; // módulos 2, 3 e 4 do primeiro curso
@@ -246,7 +252,7 @@ function buildState(timer: TimerView | null): GameState {
 
   // Nota prevista: só dias e semanas fechados
   const closedDays = days.filter((d) => d.date < TODAY && !d.breakKind);
-  const studyPct = (100 * closedDays.filter((d) => d.studyMet && !d.shieldUsed).length) / closedDays.length;
+  const studyPct = (100 * closedDays.filter((d) => d.dayMet && !d.shieldUsed).length) / closedDays.length;
   const closedWeeks = weeks.filter((w) => w.isClosed);
   const gymPct = (100 * sum(closedWeeks.map((w) => Math.min(w.gym, w.gymTarget)))) / sum(closedWeeks.map((w) => w.gymTarget));
   const cardioPct =
@@ -287,7 +293,7 @@ function buildState(timer: TimerView | null): GameState {
     todayInfo,
     yesterdayMissedUnprotected: false,
     streak: { current: 11, best: 11, shields: 1 },
-    xp: { total, byAttr: { inteligencia, forca, vigor }, ...levelFor(total) },
+    xp: { total, byAttr: { inteligencia, influencia: 0, forca, vigor }, ...levelFor(total) },
     grade: {
       studyPct: Math.round(studyPct),
       gymPct: Math.round(gymPct),
@@ -320,6 +326,7 @@ function buildState(timer: TimerView | null): GameState {
     medals: [],
     breaks: { reserveUsed: 0, reserveLeft: season1.reserveBreaks, canUseToday: true },
     timer,
+    tasks: { open: [], done: [] },
     status: {
       studyDone: false,
       weekAtRisk: false,

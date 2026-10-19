@@ -1,15 +1,18 @@
 'use client';
 
 // O painel (revisão 2 do DESIGN.md): cartões agrupados por pergunta. Primeiro o que fazer
-// hoje e a semana; depois a temporada; o personagem, o Fundo e a nota; o estudo e os cursos;
-// por fim os baús. Depende só do GameState
+// hoje e a semana; os contadores e as tarefas; depois a temporada; o personagem, o Fundo e a
+// nota; o foco e os cursos; por fim os baús. Fundo e baús só aparecem se a temporada os usa.
+// Depende só do GameState
 // (e, opcionalmente, dos registros, para a gaveta listar sessões e oferecer "Desfazer").
 
 import { useState } from 'react';
+import { season } from '@/config/season';
 import type { ForjaRecord, GameState } from '@/lib/types';
 import { BossPanel } from './BossPanel';
 import { CharacterPanel } from './CharacterPanel';
 import { ChestsPanel } from './ChestsPanel';
+import { CountersPanel } from './CountersPanel';
 import { CoursesPanel } from './CoursesPanel';
 import { DayDrawer } from './DayDrawer';
 import { BreakDialog } from './dialogs/BreakDialog';
@@ -24,10 +27,11 @@ import { Header } from './Header';
 import { RescuePanel } from './RescuePanel';
 import { SeasonCard } from './SeasonCard';
 import { StudyChartCard } from './StudyChartCard';
+import { TasksPanel } from './TasksPanel';
 import { TodayPanel, type StopInfo } from './TodayPanel';
 
 type DialogState =
-  | { kind: 'study'; day: string }
+  | { kind: 'study'; day: string; block?: string }
   | { kind: 'cardio'; day: string }
   | { kind: 'client' }
   | { kind: 'break' }
@@ -47,12 +51,15 @@ function DashboardBody({ state, records }: { state: GameState; records?: ForjaRe
   const [dialog, setDialog] = useState<DialogState>(null);
   const selectedDay = selectedDate ? (state.days.find((d) => d.date === selectedDate) ?? null) : null;
   const close = () => setDialog(null);
+  // o registro manual abre no primeiro bloco que ainda falta hoje
+  const openBlock = state.todayInfo?.blocks.find((b) => b.goal > 0 && !b.met)?.id ?? 'estudo';
+  const fund = season.features.fund;
 
   return (
     <div className="mx-auto w-full max-w-[1440px] px-4 pb-10 pt-3 md:px-8">
       <Header
         state={state}
-        onRegisterStudy={() => setDialog({ kind: 'study', day: state.today })}
+        onRegisterStudy={() => setDialog({ kind: 'study', day: state.today, block: openBlock })}
         onUseBreak={() => setDialog({ kind: 'break' })}
       />
 
@@ -72,23 +79,35 @@ function DashboardBody({ state, records }: { state: GameState; records?: ForjaRe
           </div>
         </div>
 
-        {/* 2. a temporada inteira */}
+        {/* 2. os contadores da semana e as tarefas avulsas */}
+        {season.counters.length > 0 ? (
+          <div className="lg:col-span-5">
+            <CountersPanel state={state} />
+          </div>
+        ) : null}
+        <div className={season.counters.length > 0 ? 'lg:col-span-7' : 'lg:col-span-12'}>
+          <TasksPanel state={state} />
+        </div>
+
+        {/* 3. a temporada inteira */}
         <div className="lg:col-span-12">
           <SeasonCard state={state} onSelectDay={setSelectedDate} />
         </div>
 
-        {/* 3. o progresso do personagem */}
-        <div className="lg:col-span-4">
+        {/* 4. o progresso do personagem */}
+        <div className={fund ? 'lg:col-span-4' : 'lg:col-span-6'}>
           <CharacterPanel state={state} />
         </div>
-        <div className="lg:col-span-4">
-          <FundPanel state={state} onOpenClient={() => setDialog({ kind: 'client' })} />
-        </div>
-        <div className="lg:col-span-4">
+        {fund ? (
+          <div className="lg:col-span-4">
+            <FundPanel state={state} onOpenClient={() => setDialog({ kind: 'client' })} />
+          </div>
+        ) : null}
+        <div className={fund ? 'lg:col-span-4' : 'lg:col-span-6'}>
           <GradeMark state={state} />
         </div>
 
-        {/* 4. estudo e cursos */}
+        {/* 5. foco e cursos */}
         <div className="lg:col-span-7">
           <StudyChartCard state={state} />
         </div>
@@ -96,10 +115,12 @@ function DashboardBody({ state, records }: { state: GameState; records?: ForjaRe
           <CoursesPanel state={state} />
         </div>
 
-        {/* 5. recompensas */}
-        <div className="lg:col-span-12">
-          <ChestsPanel state={state} />
-        </div>
+        {/* 6. recompensas */}
+        {season.features.chests ? (
+          <div className="lg:col-span-12">
+            <ChestsPanel state={state} />
+          </div>
+        ) : null}
       </main>
 
       <DayDrawer
@@ -117,8 +138,10 @@ function DashboardBody({ state, records }: { state: GameState; records?: ForjaRe
         }}
       />
 
-      <Dialog open={dialog?.kind === 'study'} onClose={close} title="Registrar estudo">
-        {dialog?.kind === 'study' ? <ManualStudyDialog state={state} initialDay={dialog.day} onClose={close} /> : null}
+      <Dialog open={dialog?.kind === 'study'} onClose={close} title="Registrar tempo">
+        {dialog?.kind === 'study' ? (
+          <ManualStudyDialog state={state} initialDay={dialog.day} initialBlock={dialog.block} onClose={close} />
+        ) : null}
       </Dialog>
       <Dialog open={dialog?.kind === 'cardio'} onClose={close} title="Marcar cardio">
         {dialog?.kind === 'cardio' ? <CardioDialog state={state} initialDay={dialog.day} onClose={close} /> : null}

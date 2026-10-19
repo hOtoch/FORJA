@@ -2,7 +2,7 @@
 
 import { seasonWeeks } from '@/lib/time';
 import type { DayInfo, GameState, GradeLetter, SeasonConfig } from '@/lib/types';
-import { studyCountsForWeek } from './days';
+import { dayCountsForWeek } from './days';
 import { tallyWeek } from './weeks';
 
 const EPS = 1e-9;
@@ -24,11 +24,11 @@ export function letterFor(pct: number, config: SeasonConfig): GradeLetter {
  */
 export function computeGrade(days: DayInfo[], config: SeasonConfig, asOf: string, isFinal: boolean): GameState['grade'] {
   let studyDays = 0;
-  let studyMet = 0;
+  let dayMet = 0;
   for (const d of days) {
     if (d.date >= asOf || d.breakKind) continue;
     studyDays += 1;
-    if (studyCountsForWeek(d)) studyMet += 1;
+    if (dayCountsForWeek(d)) dayMet += 1;
   }
 
   let gymDone = 0;
@@ -51,7 +51,7 @@ export function computeGrade(days: DayInfo[], config: SeasonConfig, asOf: string
     parts.push(p);
     return p;
   };
-  const studyPct = pct(studyMet, studyDays);
+  const studyPct = pct(dayMet, studyDays);
   const gymPct = pct(gymDone, gymGoal);
   const cardioPct = pct(cardioDone, cardioGoal);
   const totalPct = parts.length ? parts.reduce((a, b) => a + b, 0) / parts.length : 0;

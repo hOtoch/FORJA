@@ -2,7 +2,7 @@
 // A frente B usa estas funções nas Server Actions; nada aqui toca em banco ou relógio.
 
 import { gameDay } from './time';
-import type { SeasonConfig, StudyRecord, TimerState, TimerView } from './types';
+import type { SeasonConfig, StudyRecord, TimerState, TimerView, WorkRecord } from './types';
 
 type TimerCfg = SeasonConfig['timer'];
 
@@ -55,10 +55,14 @@ export function timerView(t: TimerState, now: Date, cfg: TimerCfg): TimerView {
   };
 }
 
-export function timerStart(courseSlug: string, pomodoro: boolean, now: Date): TimerState {
+/** Bloco do timer; timers antigos (sem `block`) são de estudo. */
+export const timerBlock = (t: Pick<TimerState, 'block'>) => t.block ?? 'estudo';
+
+export function timerStart(courseSlug: string, pomodoro: boolean, now: Date, block = 'estudo'): TimerState {
   const iso = now.toISOString();
   return {
-    courseSlug,
+    block,
+    courseSlug: block === 'estudo' ? courseSlug : '',
     startedAt: iso,
     accumulatedMs: 0,
     runningSince: iso,
@@ -99,7 +103,8 @@ export function timerConfirmPresence(t: TimerState, countGap: boolean, now: Date
 
 /**
  * Encerra a sessão: minutos = floor(creditado / 60s), limitado ao teto; dia = gameDay(startedAt).
- * Devolve null se os minutos forem 0.
+ * Estudo vira StudyRecord (com as aulas); os outros blocos, WorkRecord. Devolve null se os
+ * minutos forem 0.
  */
 export function timerStop(
   t: TimerState,
@@ -108,17 +113,29 @@ export function timerStop(
   now: Date,
   config: SeasonConfig,
   makeId: () => string,
-): StudyRecord | null {
+): StudyRecord | WorkRecord | null {
   const cfg = config.timer;
   const settled = countGap && timerAwaitingPresence(t, now, cfg) ? timerConfirmPresence(t, true, now, cfg) : t;
   const minutes = Math.min(Math.floor(timerCreditedMs(settled, now, cfg) / MINUTE), cfg.capMinutes);
   if (minutes <= 0) return null;
   const iso = now.toISOString();
+  const day = gameDay(t.startedAt, config.timeZone, config.dayStartHour);
+  const block = timerBlock(t);
+  if (block !== 'estudo') {
+    return {
+      id: makeId(),
+      seasonId: config.id,
+      kind: 'work',
+      day,
+      createdAt: iso,
+      data: { block, minutes, source: 'timer', startedAt: t.startedAt, endedAt: iso },
+    };
+  }
   return {
     id: makeId(),
     seasonId: config.id,
     kind: 'study',
-    day: gameDay(t.startedAt, config.timeZone, config.dayStartHour),
+    day,
     createdAt: iso,
     data: {
       courseSlug: t.courseSlug,

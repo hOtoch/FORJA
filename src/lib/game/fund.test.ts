@@ -61,7 +61,7 @@ describe('Fundo Réveillon', () => {
     const g = game(records, at('2026-10-12'));
     expect(dayOf(g, '2026-10-08').shieldUsed).toBe(true);
     // as 2h da folga compensam o dia 08: 5 dias × R$ 5 + 4 treinos (o 5º e o 6º são excedentes) × R$ 10
-    expect(dayOf(g, '2026-10-08').studyRedeemed).toBe(true);
+    expect(dayOf(g, '2026-10-08').dayRedeemed).toBe(true);
     expect(g.weeks[0].fundCents).toBe(5 * 500 + 4 * 1000);
     expect(dayOf(g, '2026-10-10').fundCents).toBe(0);
     expect(dayOf(g, '2026-10-08').fundCents).toBe(1500);

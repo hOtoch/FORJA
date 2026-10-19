@@ -13,8 +13,12 @@ export const season1: SeasonConfig = {
   dayStartHour: 4,
   plannedBreaks: ['2026-10-10', '2026-10-11', '2026-10-12', '2026-10-13'],
   reserveBreaks: 2,
+  blocks: [
+    { id: 'estudo', name: 'Estudo', phrase: 'estudo', icon: 'icone-livro', minutes: [60, 60, 60, 60, 60, 60, 60], attr: 'inteligencia' },
+  ],
+  counters: [],
+  features: { fund: true, chests: true },
   goals: {
-    studyMinutes: 60,
     gymPerWeek: 4,
     cardioPerWeek: 5,
     finalWeek: { gym: 2, cardio: 2, requireSuper: false },
@@ -27,14 +31,15 @@ export const season1: SeasonConfig = {
     alwaysSuper: ['pelada'],
   },
   xp: {
-    perStudyMinute: 1,
-    studyDailyCap: 120,
+    perWorkMinute: 1,
+    workDailyCap: 120,
     gym: 60,
     cardio: 20,
     superCardio: 60,
     module: 50,
     course: 200,
     boss: 100,
+    task: 25,
   },
   levelXp: (n) => 50 * n * (n + 1),
   titles: [
@@ -104,7 +109,8 @@ export const season1: SeasonConfig = {
         id: 'estudo-extra',
         title: 'Estudar {n} min a mais',
         description: 'Estude {total} min no dia do evento: a meta de 1h e mais {n} min.',
-        kind: 'study-minutes',
+        kind: 'block-minutes',
+        block: 'estudo',
         base: 60, // 60 → 180 min a mais
         step: 15,
         max: 180,
