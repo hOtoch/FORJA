@@ -24,6 +24,8 @@ const PATH = mapa.path as [number, number][];
 // árvores, pedras, casas, fogos nem estrada), perto do dia de cada um e na região do seu mês.
 // São o centro de cada desenho.
 const BOSS_AT = mapa.bosses as [number, number][];
+// Pontos escolhidos à mão para temporadas com outro número de semanas (chave = nº de semanas).
+const BOSS_AT_BY_WEEKS = mapa.bossesByWeeks as unknown as Partial<Record<string, [number, number][]>>;
 const CHEST_AT: Partial<Record<string, number[]>> = mapa.chests;
 // Chefes um pouco menores que o ferreiro, para caberem nos espaços livres do outono.
 const BOSS = 28;
@@ -106,13 +108,17 @@ export function SeasonMap({ state }: { state: GameState }) {
   const hero = heroTier(state.xp.level);
   const today = todayIndex ? state.days[todayIndex - 1] : undefined;
 
-  // Os pontos livres de mapa.json foram escolhidos para 12 semanas. Com outro número de semanas,
-  // cada chefe fica no ponto livre mais perto do seu último dia (o final, sempre no último).
+  // Os pontos de `bosses` foram escolhidos para 12 semanas; `bossesByWeeks` tem os de outras
+  // temporadas (10 semanas na 2). Sem nenhum, cada chefe fica no ponto livre mais perto do seu
+  // último dia (o final, sempre no último).
+  const handPicked = BOSS_AT_BY_WEEKS[String(state.weeks.length)];
   const curated = state.weeks.length === BOSS_AT.length;
   const usedSpots = new Set<number>();
   const bosses = state.weeks.map((w) => {
     const lastDay = state.days.filter((d) => d.weekIndex === w.index).at(-1)?.index ?? n;
     const p = w.isFinal ? geo.at(geo.total) : dayPt(lastDay);
+    const picked = handPicked?.[w.index - 1];
+    if (picked) return { w, boss: bossOfWeek(w.index, w.isFinal), cx: picked[0], cy: picked[1] };
     let spot = curated ? w.index - 1 : w.isFinal ? BOSS_AT.length - 1 : -1;
     if (spot < 0) {
       let best = Infinity;
