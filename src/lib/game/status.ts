@@ -1,7 +1,7 @@
 // Status do dia para o painel e para o lembrete das 21h (/api/status).
 
 import { daysBetween, weekdayOf } from '@/lib/time';
-import type { DayInfo, GameState, SeasonConfig, WeekInfo } from '@/lib/types';
+import type { DayInfo, GameState, RescueEvent, SeasonConfig, WeekInfo } from '@/lib/types';
 import type { Phase } from './days';
 
 export interface StatusInput {
@@ -10,6 +10,8 @@ export interface StatusInput {
   today: string;
   todayInfo: DayInfo | null;
   currentWeek: WeekInfo | null;
+  /** Evento de resgate desta semana, se houver. */
+  rescue?: RescueEvent | null;
   yesterdayMissedUnprotected: boolean;
 }
 
@@ -25,12 +27,16 @@ export function computeStatus(input: StatusInput): GameState['status'] {
   const { config, phase, today, todayInfo, currentWeek } = input;
   const reasons: string[] = [];
 
-  const studyDone = phase !== 'active' || !todayInfo || todayInfo.studyMet || todayInfo.breakKind !== null;
+  const studyDone = phase !== 'active' || !todayInfo || todayInfo.dayMet || todayInfo.breakKind !== null;
   if (!studyDone && todayInfo) {
-    const left = config.goals.studyMinutes - todayInfo.studyMinutes;
-    reasons.push(`${plural(left, 'Falta', 'Faltam')} ${left} min de estudo hoje.`);
+    for (const b of todayInfo.blocks) {
+      const left = b.goal - b.minutes;
+      if (left <= 0) continue;
+      const phrase = config.blocks.find((x) => x.id === b.id)?.phrase ?? b.id;
+      reasons.push(`${plural(left, 'Falta', 'Faltam')} ${left} min de ${phrase} hoje.`);
+    }
     if (input.yesterdayMissedUnprotected) {
-      reasons.push('Ontem ficou sem estudo. Se hoje também ficar, a sequência quebra.');
+      reasons.push('Ontem ficou sem a meta. Se hoje também ficar, a sequência quebra.');
     }
   }
 
@@ -49,6 +55,10 @@ export function computeStatus(input: StatusInput): GameState['status'] {
       weekAtRisk = true;
       reasons.push('Falta o supercardio da semana.');
     }
+  }
+
+  if (input.rescue?.state === 'active') {
+    reasons.push(`Evento de resgate hoje: ${input.rescue.title.toLowerCase()} derrota o chefe da semana ${input.rescue.weekIndex}.`);
   }
 
   return { studyDone, weekAtRisk, reasons };

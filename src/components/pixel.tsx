@@ -5,7 +5,7 @@
 //   arte = 1 px de imagem), ampliada por múltiplos inteiros com image-rendering: pixelated.
 
 import type { CSSProperties, ReactNode } from 'react';
-import { season1 } from '@/config/season1';
+import { season } from '@/config/season';
 
 export interface SpriteProps {
   name: string;
@@ -54,8 +54,8 @@ export interface HeroTier {
   sprite: string;
 }
 
-/** Uma evolução por título (season1.titles): Aprendiz, Malhador, Ferreiro, Armeiro, Mestre, Lenda. */
-export const HERO_TIERS: HeroTier[] = season1.titles.map(([minLevel, title], i) => ({
+/** Uma evolução por título (season.titles): Aprendiz, Malhador, Ferreiro, Armeiro, Mestre, Lenda. */
+export const HERO_TIERS: HeroTier[] = season.titles.map(([minLevel, title], i) => ({
   index: i,
   minLevel: i === 0 ? 0 : minLevel,
   title,

@@ -1,7 +1,7 @@
 // Faixa da temporada (revisão 2): o dia em destaque, os selos de sequência, escudos e
 // folgas, e a barra de 80 dias logo abaixo.
 
-import { season1 } from '@/config/season1';
+import { season } from '@/config/season';
 import { daysBetween, longDate, shortDate } from '@/lib/time';
 import type { GameState } from '@/lib/types';
 import { plural } from './format';
@@ -12,7 +12,7 @@ import { SeasonBar } from './SeasonBar';
 function dayFigure(state: GameState): { big: string; small: string } {
   const total = state.days.length;
   if (state.phase === 'before') {
-    const left = daysBetween(state.today, season1.start);
+    const left = daysBetween(state.today, season.start);
     return { big: `${left}`, small: left === 1 ? 'dia para começar' : 'dias para começar' };
   }
   if (state.phase === 'after' || state.dayIndex === null) return { big: `${total}`, small: 'dias forjados' };
@@ -30,10 +30,10 @@ export function SeasonCard({ state, onSelectDay }: { state: GameState; onSelectD
         <div className="flex flex-wrap items-end gap-x-5 gap-y-2">
           <div>
             <h2 id="temporada-titulo" className="card-title">
-              {season1.name}
+              {season.name}
             </h2>
             <p className="text-small text-muted num">
-              Temporada 1, de {shortDate(season1.start)} a {shortDate(season1.end)}
+              Temporada {season.id.replace(/\D/g, '')}, de {shortDate(season.start)} a {shortDate(season.end)}
             </p>
           </div>
           <p className="flex items-baseline gap-1.5 whitespace-nowrap border-l border-line pl-5">
@@ -52,12 +52,12 @@ export function SeasonCard({ state, onSelectDay }: { state: GameState; onSelectD
           </li>
           <li className="chip">
             <span className="flex gap-0.5" aria-hidden="true">
-              {Array.from({ length: season1.shields.max }, (_, i) => (
+              {Array.from({ length: season.shields.max }, (_, i) => (
                 <Sprite key={i} name={i < streak.shields ? 'icone-escudo' : 'icone-escudo-vazio'} base={12} scale={2} />
               ))}
             </span>
             <span>
-              Escudos <b className="num">{streak.shields} de {season1.shields.max}</b>
+              Escudos <b className="num">{streak.shields} de {season.shields.max}</b>
             </span>
           </li>
           <li className="chip">
@@ -65,11 +65,11 @@ export function SeasonCard({ state, onSelectDay }: { state: GameState; onSelectD
             <span className="num">
               {left === null
                 ? state.phase === 'before'
-                  ? `Começa ${longDate(season1.start)}`
+                  ? `Começa ${longDate(season.start)}`
                   : 'Temporada encerrada'
                 : left === 0
                   ? 'Último dia'
-                  : `${plural(left, 'dia', 'dias')} até 23/12`}
+                  : `${plural(left, 'dia', 'dias')} até ${shortDate(season.end)}`}
             </span>
           </li>
         </ul>

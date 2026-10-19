@@ -1,25 +1,25 @@
 'use client';
 
-// "Hoje" e o timer de estudo (DESIGN.md, seção 6: "Hoje" e "Timer").
+// "Hoje" e o timer (DESIGN.md, seção 6: "Hoje" e "Timer"): os blocos da rotina do dia, cada um
+// com a sua meta e o botão para ligar o timer nele, e a academia e o cardio da semana.
 
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { addGym, confirmPresence, pauseTimer, resumeTimer, startTimer } from '@/app/actions';
-import { season1 } from '@/config/season1';
+import { season } from '@/config/season';
 import { gameDay, longDate } from '@/lib/time';
 import type { ActionResult, GameState, NextLesson, TimerView } from '@/lib/types';
 import { runAction, useToast } from './feedback';
-import { clockParts, clockSpoken, courseBySlug, lessonName, minutesLabel, timeHM } from './format';
+import { blockName, clockParts, clockSpoken, courseBySlug, hoursLabel, joinPt, lessonName, minutesLabel, timeHM } from './format';
 import { Sprite } from './pixel';
-import { RingMeter } from './viz';
+import { Meter, RingMeter } from './viz';
 
 const MIN = 60_000;
-const PRESENCE_MS = season1.timer.presenceMinutes * MIN;
-const CAP_MS = season1.timer.capMinutes * MIN;
-const FOCUS_MS = season1.timer.pomodoroFocus * MIN;
-const BREAK_MS = season1.timer.pomodoroBreak * MIN;
+const PRESENCE_MS = season.timer.presenceMinutes * MIN;
+const CAP_MS = season.timer.capMinutes * MIN;
+const FOCUS_MS = season.timer.pomodoroFocus * MIN;
+const BREAK_MS = season.timer.pomodoroBreak * MIN;
 /** Até 2 min depois do aviso, "Sim, continuar" conta o intervalo inteiro. */
 const QUICK_REPLY_MS = 2 * MIN;
-const GOAL = season1.goals.studyMinutes;
 
 export interface StopInfo {
   creditedMs: number;
@@ -65,19 +65,18 @@ function systemNotify(title: string, body: string) {
 function statusSentence(state: GameState): string {
   const d = state.todayInfo;
   if (state.phase === 'before')
-    return `A temporada começa na ${longDate(season1.start)}. Até lá, o estudo vale XP.`;
-  if (state.phase === 'after' || !d) return 'A temporada terminou. O estudo de hoje vale XP.';
-  if (d.breakKind) return 'Hoje é folga. A sequência fica guardada até amanhã.';
-  if (d.studyMet)
-    return d.studyMinutes >= 120
-      ? 'Meta de hoje cumprida, com 2h de estudo. O XP do estudo de hoje chegou ao teto.'
-      : 'Meta de hoje cumprida. Cada minuto a mais vale XP até 2h.';
-  if (state.yesterdayMissedUnprotected) return 'Ontem ficou sem estudo. Se hoje também ficar, a sequência quebra.';
-  if (d.studyMinutes === 0)
-    return state.nextLesson
-      ? `Nenhum estudo hoje ainda. Comece pela aula ${lessonName(state.nextLesson.title)}.`
-      : 'Nenhum estudo hoje ainda.';
-  return `Faltam ${GOAL - d.studyMinutes} min para a meta de hoje.`;
+    return `A temporada começa na ${longDate(season.start)}. Até lá, o foco vale XP.`;
+  if (state.phase === 'after' || !d) return 'A temporada terminou. O foco de hoje vale XP.';
+  if (d.breakKind) return 'Hoje é folga: descanse e planeje a semana. A sequência fica guardada até amanhã.';
+  if (d.dayMet)
+    return d.workMinutes >= d.goalMinutes + 60
+      ? 'Todas as metas de hoje cumpridas, com 1h a mais. Esse extra compensa outro dia da semana.'
+      : 'Todas as metas de hoje cumpridas. O que passar da meta compensa outro dia da semana.';
+  if (state.yesterdayMissedUnprotected) return 'Ontem ficou sem a meta. Se hoje também ficar, a sequência quebra.';
+  const open = d.blocks.filter((b) => !b.met);
+  const left = open.reduce((s, b) => s + b.goal - b.minutes, 0);
+  if (d.workMinutes === 0) return `Nada registrado hoje ainda. São ${hoursLabel(d.goalMinutes)} de foco pela frente.`;
+  return `Faltam ${hoursLabel(left)} hoje: ${joinPt(open.map((b) => blockName(b.id)))}.`;
 }
 
 /** Algarismos em largura fixa, para o tempo não tremer. */
@@ -119,7 +118,7 @@ export function TodayPanel({ state, onOpenCardio, onStopSession }: Props) {
         return;
       }
       setBreakUntil(Date.now() + BREAK_MS);
-      systemNotify('Hora da pausa', `${season1.timer.pomodoroFocus} min de foco feitos. Descanse ${season1.timer.pomodoroBreak} min.`);
+      systemNotify('Hora da pausa', `${season.timer.pomodoroFocus} min de foco feitos. Descanse ${season.timer.pomodoroBreak} min.`);
     }
 
     const tick = () => {
@@ -130,7 +129,7 @@ export function TodayPanel({ state, onOpenCardio, onStopSession }: Props) {
         const n = timerNumbers(timer, server);
         if (n.awaiting && notifiedFor.current !== timer.lastConfirmAt) {
           notifiedFor.current = timer.lastConfirmAt;
-          systemNotify('Ainda estudando?', 'O Forja parou de contar até você responder.');
+          systemNotify('Ainda no foco?', 'O Forja parou de contar até você responder.');
         }
         if (timer.pomodoro && timer.runningSince && !n.awaiting && !n.capped) {
           const block = Math.floor(n.credited / FOCUS_MS);
@@ -161,7 +160,8 @@ export function TodayPanel({ state, onOpenCardio, onStopSession }: Props) {
     });
   }
 
-  function studyNow() {
+  /** Liga o timer num bloco; no estudo, abre a próxima aula. */
+  function startBlock(block: string) {
     try {
       if ('Notification' in window && Notification.permission === 'default') {
         void Notification.requestPermission().catch(() => {});
@@ -169,16 +169,21 @@ export function TodayPanel({ state, onOpenCardio, onStopSession }: Props) {
     } catch {
       // sem notificações
     }
-    if (next) window.open(next.url, '_blank', 'noopener');
-    const slug = next?.courseSlug ?? state.currentCourseSlug ?? season1.courses.queue[season1.courses.queue.length - 1];
+    const isStudy = block === 'estudo';
+    if (isStudy && next) window.open(next.url, '_blank', 'noopener');
+    const slug = isStudy
+      ? (next?.courseSlug ?? state.currentCourseSlug ?? season.courses.queue[season.courses.queue.length - 1])
+      : '';
     startTransition(async () => {
-      const r = await runAction(() => startTimer(slug, pomodoro), 'A sessão');
+      const r = await runAction(() => startTimer(slug, pomodoro, block), 'A sessão');
       if (!r.ok) toast(r.error, { tone: 'error' });
-      else if (!next) toast('Timer ligado. A fila de cursos acabou, então não há próxima aula para abrir.');
+      else if (isStudy && !next) toast('Timer ligado. A fila de cursos acabou, então não há próxima aula para abrir.');
     });
   }
 
-  const todayMinutes = state.todayInfo?.studyMinutes ?? 0;
+  const todayMinutes = state.todayInfo?.workMinutes ?? 0;
+  const todayGoal = state.todayInfo?.goalMinutes ?? 0;
+  const todayBlocks = state.todayInfo?.blocks ?? [];
   const week = state.currentWeek;
   const gymToday = state.todayInfo?.gym ?? 0;
   const cardioToday = state.todayInfo?.cardio ?? 0;
@@ -194,14 +199,19 @@ export function TodayPanel({ state, onOpenCardio, onStopSession }: Props) {
   if (timer) {
     const serverNow = Math.max(clock?.server ?? 0, Date.parse(state.now));
     const n = timerNumbers(timer, serverNow);
-    const course = courseBySlug(state, timer.courseSlug);
-    const lesson = next && next.courseSlug === timer.courseSlug ? next : null;
-    const sameDay = gameDay(timer.startedAt, season1.timeZone, season1.dayStartHour) === state.today;
+    const block = timer.block ?? 'estudo';
+    const isStudy = block === 'estudo';
+    const course = isStudy ? courseBySlug(state, timer.courseSlug) : undefined;
+    const lesson = isStudy && next && next.courseSlug === timer.courseSlug ? next : null;
+    const blockToday = todayBlocks.find((b) => b.id === block);
+    const blockGoal = blockToday?.goal ?? 0;
+    const sameDay = gameDay(timer.startedAt, season.timeZone, season.dayStartHour) === state.today;
     const sessionMin = Math.floor(n.credited / MIN);
     const breakLeft = breakUntil !== null && clock ? breakUntil - clock.client : null;
     const paused = !timer.runningSince;
     const gapMin = Math.floor(n.pending / MIN);
-    const withSession = (sameDay ? todayMinutes : 0) + sessionMin;
+    const withSession = (sameDay ? (blockToday?.minutes ?? 0) : 0) + sessionMin;
+    const ringMax = Math.max(blockGoal, 1);
 
     return (
       <section aria-labelledby="hoje-titulo" className="card">
@@ -209,30 +219,36 @@ export function TodayPanel({ state, onOpenCardio, onStopSession }: Props) {
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
           <RingMeter
             value={withSession}
-            max={GOAL}
+            max={ringMax}
             size={156}
             stroke={14}
-            label={`${withSession} de ${GOAL} minutos hoje, contando esta sessão`}
+            label={`${blockName(block)}: ${withSession} de ${blockGoal} minutos hoje, contando esta sessão`}
           >
             <p
               role="timer"
-              aria-label={`Sessão de estudo: ${clockSpoken(n.credited)}`}
+              aria-label={`Sessão de ${blockName(block)}: ${clockSpoken(n.credited)}`}
               className="text-[2rem] font-bold leading-9 num"
             >
               <ClockDigits text={clockParts(n.credited)} />
             </p>
-            <span className="text-small text-muted num">{paused ? 'pausado' : `${withSession} de ${GOAL} min`}</span>
+            <span className="text-small text-muted num">
+              {paused ? 'pausado' : blockGoal > 0 ? `${withSession} de ${blockGoal} min` : `${withSession} min hoje`}
+            </span>
           </RingMeter>
           <div className="min-w-0 flex-1">
-            <p className="text-lead font-bold">{course?.name ?? 'Estudo livre'}</p>
-            <p className="mt-0.5 flex items-center gap-2 text-body text-muted">
-              <Sprite name="icone-livro" base={12} scale={2} />
-              {lesson ? `Aula: ${lessonName(lesson.title)}` : 'Sem próxima aula na fila'}
+            <p className="text-lead font-bold">
+              {isStudy ? (course?.name ?? 'Estudo livre') : blockName(block)}
             </p>
+            {isStudy ? (
+              <p className="mt-0.5 flex items-center gap-2 text-body text-muted">
+                <Sprite name="icone-livro" base={12} scale={2} />
+                {lesson ? `Aula: ${lessonName(lesson.title)}` : 'Sem próxima aula na fila'}
+              </p>
+            ) : null}
             <p className="mt-1 text-small text-muted num">
               {sameDay ? 'A sessão soma no dia de hoje.' : 'Esta sessão conta para ontem, o dia em que começou.'}
               {timer.pomodoro && !paused && !n.awaiting
-                ? ` Pomodoro: ${Math.floor((n.credited % FOCUS_MS) / MIN)} de ${season1.timer.pomodoroFocus} min de foco.`
+                ? ` Pomodoro: ${Math.floor((n.credited % FOCUS_MS) / MIN)} de ${season.timer.pomodoroFocus} min de foco.`
                 : ''}
             </p>
 
@@ -242,7 +258,7 @@ export function TodayPanel({ state, onOpenCardio, onStopSession }: Props) {
               </div>
             ) : n.awaiting && n.pending < QUICK_REPLY_MS ? (
               <div className="band mt-3 flex flex-wrap items-center gap-x-4 gap-y-2" role="alert">
-                <p className="text-lead font-medium">Ainda estudando?</p>
+                <p className="text-lead font-medium">Ainda no foco?</p>
                 <button
                   type="button"
                   className="btn btn-ink"
@@ -254,7 +270,7 @@ export function TodayPanel({ state, onOpenCardio, onStopSession }: Props) {
               </div>
             ) : n.awaiting && n.deadline !== null ? (
               <div className="band mt-3 flex flex-wrap items-center gap-x-4 gap-y-2" role="alert">
-                <p className="text-body font-medium">O timer pausou às {timeHM(n.deadline)}. Esse intervalo foi estudo?</p>
+                <p className="text-body font-medium">O timer pausou às {timeHM(n.deadline)}. Esse intervalo foi foco?</p>
                 <div className="flex gap-2">
                   <button
                     type="button"
@@ -337,52 +353,80 @@ export function TodayPanel({ state, onOpenCardio, onStopSession }: Props) {
       <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
         <RingMeter
           value={todayMinutes}
-          max={GOAL}
+          max={Math.max(todayGoal, 1)}
           size={156}
           stroke={14}
-          label={`${todayMinutes} de ${GOAL} minutos de estudo hoje`}
+          label={`${todayMinutes} de ${todayGoal} minutos de foco hoje`}
         >
-          <span className="figure text-[2.5rem] leading-10">{todayMinutes}</span>
-          <span className="text-small text-muted num">de {GOAL} min</span>
-          {todayMinutes >= GOAL ? (
-            <span className="mt-0.5 text-micro font-bold text-ink">meta cumprida</span>
+          <span className="figure text-[2.25rem] leading-10">{hoursLabel(todayMinutes)}</span>
+          <span className="text-small text-muted num">{todayGoal > 0 ? `de ${hoursLabel(todayGoal)}` : 'sem meta hoje'}</span>
+          {state.todayInfo?.dayMet && todayGoal > 0 ? (
+            <span className="mt-0.5 text-micro font-bold text-ink">metas cumpridas</span>
           ) : null}
         </RingMeter>
 
         <div className="min-w-0 flex-1">
           <p className="text-lead font-medium">{statusSentence(state)}</p>
-          <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-3">
-            <button type="button" className="btn btn-primary" disabled={pending} onClick={studyNow}>
-              Estudar agora
-            </button>
-            <label className="inline-flex cursor-pointer items-center gap-2 text-small text-muted">
-              <input
-                type="checkbox"
-                className="h-4 w-4 accent-[var(--text)]"
-                checked={pomodoro}
-                onChange={(e) => setPomodoro(e.target.checked)}
-              />
-              Pomodoro (25 min de foco e 5 de pausa)
-            </label>
-          </div>
-          <p className="mt-3 flex items-start gap-2 text-body">
-            <span aria-hidden="true">
-              <Sprite name="icone-livro" base={12} scale={2} />
-            </span>
-            <span className="min-w-0">
-              {next ? (
-                <>
-                  <span className="text-muted">Próxima aula: </span>
-                  <span className="font-bold">{lessonName(next.title)}</span>{' '}
-                  <span className="text-muted num">({minutesLabel(next.minutes)})</span>
-                </>
-              ) : (
-                'A fila de cursos acabou. O timer conta mesmo assim.'
-              )}
-            </span>
-          </p>
+          <label className="mt-3 inline-flex cursor-pointer items-center gap-2 text-small text-muted">
+            <input
+              type="checkbox"
+              className="h-4 w-4 accent-[var(--text)]"
+              checked={pomodoro}
+              onChange={(e) => setPomodoro(e.target.checked)}
+            />
+            Pomodoro (25 min de foco e 5 de pausa)
+          </label>
         </div>
       </div>
+
+      <ul className="mt-5 space-y-2" aria-label="Blocos de hoje">
+        {season.blocks.map((cfg) => {
+          const b = todayBlocks.find((x) => x.id === cfg.id);
+          const minutes = b?.minutes ?? 0;
+          const goal = b?.goal ?? 0;
+          const done = goal > 0 && minutes >= goal;
+          return (
+            <li key={cfg.id} className="tile flex-wrap">
+              <Sprite name={cfg.icon} base={12} scale={2} style={{ opacity: done || goal === 0 ? 1 : 0.7 }} />
+              <div className="min-w-[10rem] flex-1">
+                <p className="flex items-baseline justify-between gap-2 text-body">
+                  <span className="font-bold">{cfg.name}</span>
+                  <span className="text-small text-muted num">
+                    {goal > 0 ? `${hoursLabel(minutes)} de ${hoursLabel(goal)}` : minutes > 0 ? hoursLabel(minutes) : 'livre hoje'}
+                    {done ? ' ✓' : ''}
+                  </span>
+                </p>
+                {goal > 0 ? (
+                  <div className="mt-1.5">
+                    <Meter value={Math.min(minutes, goal)} max={goal} size="sm" label={`${cfg.name}: ${minutes} de ${goal} min`} />
+                  </div>
+                ) : null}
+                {cfg.id === 'estudo' ? (
+                  <p className="mt-1 truncate text-small text-muted">
+                    {next ? (
+                      <>
+                        Próxima aula: <span className="font-medium text-ink">{lessonName(next.title)}</span>{' '}
+                        <span className="num">({minutesLabel(next.minutes)})</span>
+                      </>
+                    ) : (
+                      'A fila de cursos acabou. O timer conta mesmo assim.'
+                    )}
+                  </p>
+                ) : null}
+              </div>
+              <button
+                type="button"
+                className={`btn ml-auto ${done ? 'btn-outline' : 'btn-primary'}`}
+                disabled={pending}
+                onClick={() => startBlock(cfg.id)}
+                aria-label={`Iniciar timer de ${cfg.name}`}
+              >
+                Iniciar
+              </button>
+            </li>
+          );
+        })}
+      </ul>
 
       <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="tile flex-wrap">

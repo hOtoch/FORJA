@@ -7,11 +7,11 @@
 
 import { useState, type KeyboardEvent } from 'react';
 import mapa from '@/config/mapa.json';
-import { season1 } from '@/config/season1';
+import { season } from '@/config/season';
 import { shortDate } from '@/lib/time';
 import type { ChestState, DayInfo, GameState, WeekInfo } from '@/lib/types';
 import { bossOfWeek } from './bosses';
-import { dayTooltip, heatReason, WEEKDAY_SHORT } from './format';
+import { dayTooltip, heatReason, hoursLabel, WEEKDAY_SHORT } from './format';
 import { heroTier, Sprite } from './pixel';
 
 type Pt = { x: number; y: number };
@@ -106,15 +106,32 @@ export function SeasonMap({ state }: { state: GameState }) {
   const hero = heroTier(state.xp.level);
   const today = todayIndex ? state.days[todayIndex - 1] : undefined;
 
+  // Os pontos livres de mapa.json foram escolhidos para 12 semanas. Com outro número de semanas,
+  // cada chefe fica no ponto livre mais perto do seu último dia (o final, sempre no último).
+  const curated = state.weeks.length === BOSS_AT.length;
+  const usedSpots = new Set<number>();
   const bosses = state.weeks.map((w) => {
     const lastDay = state.days.filter((d) => d.weekIndex === w.index).at(-1)?.index ?? n;
     const p = w.isFinal ? geo.at(geo.total) : dayPt(lastDay);
-    const [cx, cy] = BOSS_AT[w.index - 1] ?? [p.x, p.y - 26];
+    let spot = curated ? w.index - 1 : w.isFinal ? BOSS_AT.length - 1 : -1;
+    if (spot < 0) {
+      let best = Infinity;
+      BOSS_AT.forEach(([x, y], i) => {
+        if (i === BOSS_AT.length - 1 || usedSpots.has(i)) return;
+        const dist = Math.hypot(x - p.x, y - p.y);
+        if (dist < best) {
+          best = dist;
+          spot = i;
+        }
+      });
+    }
+    usedSpots.add(spot);
+    const [cx, cy] = BOSS_AT[spot] ?? [p.x, p.y - 26];
     return { w, boss: bossOfWeek(w.index, w.isFinal), cx, cy };
   });
 
   const chests = state.chests.map((c) => {
-    const cfg = season1.chests.find((x) => x.id === c.id);
+    const cfg = season.chests.find((x) => x.id === c.id);
     const day = cfg ? CHEST_DAY[cfg.kind](state) : 80;
     const p = dayPt(day);
     const [cx, cy] = (cfg && CHEST_AT[cfg.kind]) ?? [p.x, p.y + 18];
@@ -300,8 +317,8 @@ function Details({
         <p className="mt-3 text-body">{heatReason(d)}</p>
         <dl className="mt-4 grid grid-cols-3 gap-2 text-center">
           <div className="tile flex-col gap-0 bg-surface">
-            <dt className="text-micro text-muted">Estudo</dt>
-            <dd className="text-body font-bold num">{d.studyMinutes} min</dd>
+            <dt className="text-micro text-muted">Foco</dt>
+            <dd className="text-body font-bold num">{hoursLabel(d.workMinutes)}</dd>
           </div>
           <div className="tile flex-col gap-0 bg-surface">
             <dt className="text-micro text-muted">Treinos</dt>
@@ -342,9 +359,9 @@ function Details({
         <p className="mt-3 text-body italic text-muted">{boss.lore}</p>
         <dl className="mt-4 grid grid-cols-3 gap-2 text-center">
           <div className="tile flex-col gap-0 bg-surface">
-            <dt className="text-micro text-muted">Estudo</dt>
+            <dt className="text-micro text-muted">Rotina</dt>
             <dd className="text-body font-bold num">
-              {w.studyDaysMet} de {w.studyDaysRequired}
+              {w.daysMet} de {w.daysRequired}
             </dd>
           </div>
           <div className="tile flex-col gap-0 bg-surface">

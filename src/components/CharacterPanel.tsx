@@ -22,7 +22,7 @@ export function CharacterPanel({ state }: { state: GameState }) {
   const { xp } = state;
   const span = xp.nextLevelXp - xp.levelStartXp;
   const into = xp.total - xp.levelStartXp;
-  const top = Math.max(1, xp.byAttr.inteligencia, xp.byAttr.forca, xp.byAttr.vigor);
+  const top = Math.max(1, xp.byAttr.inteligencia, xp.byAttr.influencia, xp.byAttr.forca, xp.byAttr.vigor);
   const tier = heroTier(xp.level);
   const next = nextHeroTier(xp.level);
 
@@ -78,6 +78,7 @@ export function CharacterPanel({ state }: { state: GameState }) {
 
       <div className="mt-4 space-y-2">
         <Attr icon={<Sprite name="icone-livro" base={12} scale={2} />} name="Inteligência" value={xp.byAttr.inteligencia} max={top} />
+        <Attr icon={<Sprite name="bolsa" base={12} scale={2} />} name="Influência" value={xp.byAttr.influencia} max={top} />
         <Attr icon={<Sprite name="icone-martelo" base={12} scale={2} />} name="Força" value={xp.byAttr.forca} max={top} />
         <Attr icon={<Sprite name="icone-coracao" base={12} scale={2} />} name="Vigor" value={xp.byAttr.vigor} max={top} />
       </div>

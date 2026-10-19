@@ -1,11 +1,12 @@
 import type { Metadata } from 'next';
 import { Header } from '@/components/Header';
 import { ToastProvider } from '@/components/feedback';
-import { lessonName, minutesLabel, projDate } from '@/components/format';
+import { courseBySlug, lessonName, lessonTitleById, minutesLabel, projDate } from '@/components/format';
 import { MedalIcon } from '@/components/icons';
-import { season1 } from '@/config/season1';
-import { loadGameState } from '@/lib/load-state';
-import type { CourseProgress, GameState } from '@/lib/types';
+import { season } from '@/config/season';
+import { loadDashboard } from '@/lib/load-state';
+import { longDate } from '@/lib/time';
+import type { CourseProgress, ForjaRecord, GameState, StudyRecord } from '@/lib/types';
 
 export const metadata: Metadata = { title: 'Cursos do Forja' };
 
@@ -48,7 +49,7 @@ function CourseMap({ course, position, state }: { course: CourseProgress; positi
       <ol className="mt-6 space-y-2">
         {course.modules.map((m, i) => {
           const open = current && i === currentModule;
-          const left = m.lessons.filter((l) => !l.done).reduce((a, l) => a + (l.minutes || season1.courses.missingDurationMin), 0);
+          const left = m.lessons.filter((l) => !l.done).reduce((a, l) => a + (l.minutes || season.courses.missingDurationMin), 0);
           return (
             <li key={m.name}>
               <details open={open} className="group">
@@ -69,7 +70,7 @@ function CourseMap({ course, position, state }: { course: CourseProgress; positi
                           aria-hidden="true"
                         />
                         <a
-                          href={season1.courses.lessonUrl(course.slug, l.id)}
+                          href={season.courses.lessonUrl(course.slug, l.id)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className={`min-w-0 flex-1 rounded-[2px] hover:underline ${isNext ? 'font-bold' : ''} ${
@@ -95,8 +96,48 @@ function CourseMap({ course, position, state }: { course: CourseProgress; positi
   );
 }
 
+/** Diário de aprendizado: os resumos escritos ao encerrar cada estudo, do mais novo ao mais velho. */
+function Journal({ state, records }: { state: GameState; records: ForjaRecord[] }) {
+  const entries = records
+    .filter((r): r is StudyRecord => r.kind === 'study' && Boolean(r.data.summary))
+    .sort((a, b) => b.day.localeCompare(a.day) || b.createdAt.localeCompare(a.createdAt));
+  return (
+    <section aria-labelledby="diario-titulo" className="card mt-8">
+      <div className="card-head">
+        <h2 id="diario-titulo" className="card-title">
+          Diário de aprendizado
+        </h2>
+        <span className="card-meta num">
+          {entries.length === 0 ? 'nenhum resumo ainda' : `${entries.length} ${entries.length === 1 ? 'resumo' : 'resumos'}`}
+        </span>
+      </div>
+      {entries.length === 0 ? (
+        <p className="text-body text-muted">
+          Cada estudo encerrado pede um resumo do que você aprendeu. Eles ficam aqui, prontos para virar post no LinkedIn.
+        </p>
+      ) : (
+        <ol className="space-y-4">
+          {entries.map((r) => {
+            const course = courseBySlug(state, r.data.courseSlug);
+            const lessons = r.data.lessonIds.map((id) => lessonTitleById(state, id)).filter(Boolean);
+            return (
+              <li key={r.id} className="border-l-2 border-line pl-4">
+                <p className="text-small text-muted num">
+                  {longDate(r.day)} · {course?.name ?? r.data.courseSlug} · {r.data.minutes} min
+                  {lessons.length > 0 ? ` · ${lessons.join('; ')}` : ''}
+                </p>
+                <p className="mt-1 max-w-[80ch] whitespace-pre-line text-body">{r.data.summary}</p>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </section>
+  );
+}
+
 export default async function CursosPage() {
-  const state = await loadGameState();
+  const { state, records } = await loadDashboard();
   return (
     <div className="mx-auto w-full max-w-[1440px] px-4 pb-16 pt-3 md:px-8">
       <ToastProvider>
@@ -110,6 +151,7 @@ export default async function CursosPage() {
             <CourseMap key={c.slug} course={c} position={i + 1} state={state} />
           ))}
         </div>
+        <Journal state={state} records={records} />
       </main>
     </div>
   );

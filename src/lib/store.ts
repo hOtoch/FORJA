@@ -1,4 +1,5 @@
-// Armazenamento do Forja: registros de fatos (`records`) e o timer em andamento (`kv['timer']`).
+// Armazenamento do Forja: registros de fatos (`records`), o timer em andamento (`kv['timer']`) e as
+// tarefas avulsas da temporada (`kv['tasks:<temporada>']`).
 // Dois adaptadores com a mesma interface (data-model.md, "Armazenamento"):
 // - Neon (Postgres) quando há DATABASE_URL; num banco novo, cria as tabelas sozinho no primeiro uso;
 // - arquivo JSON local (.data/forja.json) quando não há, só fora de produção.
@@ -6,7 +7,7 @@
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { neon, type NeonQueryFunction } from '@neondatabase/serverless';
-import type { ForjaRecord, TimerState } from './types';
+import type { ForjaRecord, Task, TimerState } from './types';
 
 export interface Store {
   /** Registros da temporada, em ordem de dia e de criação. */
@@ -17,9 +18,13 @@ export interface Store {
   getTimer(): Promise<TimerState | null>;
   /** null apaga o timer. */
   setTimer(t: TimerState | null): Promise<void>;
+  /** Tarefas avulsas da temporada (lista inteira; são poucas). */
+  getTasks(seasonId: string): Promise<Task[]>;
+  setTasks(seasonId: string, tasks: Task[]): Promise<void>;
 }
 
 const TIMER_KEY = 'timer';
+const tasksKey = (seasonId: string) => `tasks:${seasonId}`;
 
 function byDayThenCreated(a: ForjaRecord, b: ForjaRecord): number {
   if (a.day !== b.day) return a.day < b.day ? -1 : 1;
@@ -123,23 +128,31 @@ export function createNeonStore(databaseUrl: string, makeSql: (url: string) => S
       const rows = await run(() => sql`delete from records where id = ${id} returning id`);
       return rows.length > 0;
     },
-    async getTimer() {
-      const rows = (await run(() => sql`select value from kv where key = ${TIMER_KEY}`)) as { value: unknown }[];
-      return rows.length ? parseJson<TimerState>(rows[0].value) : null;
+    getTimer: () => getKv<TimerState>(TIMER_KEY),
+    setTimer: (t) => setKv(TIMER_KEY, t),
+    async getTasks(seasonId) {
+      return (await getKv<Task[]>(tasksKey(seasonId))) ?? [];
     },
-    async setTimer(t) {
-      if (t === null) {
-        await run(() => sql`delete from kv where key = ${TIMER_KEY}`);
-        return;
-      }
-      await run(
-        () => sql`
-          insert into kv (key, value) values (${TIMER_KEY}, ${JSON.stringify(t)}::jsonb)
-          on conflict (key) do update set value = excluded.value
-        `,
-      );
-    },
+    setTasks: (seasonId, tasks) => setKv(tasksKey(seasonId), tasks),
   };
+
+  async function getKv<T>(key: string): Promise<T | null> {
+    const rows = (await run(() => sql`select value from kv where key = ${key}`)) as { value: unknown }[];
+    return rows.length ? parseJson<T>(rows[0].value) : null;
+  }
+
+  async function setKv(key: string, value: unknown): Promise<void> {
+    if (value === null) {
+      await run(() => sql`delete from kv where key = ${key}`);
+      return;
+    }
+    await run(
+      () => sql`
+        insert into kv (key, value) values (${key}, ${JSON.stringify(value)}::jsonb)
+        on conflict (key) do update set value = excluded.value
+      `,
+    );
+  }
 }
 
 // ---------- Arquivo JSON ----------
@@ -240,6 +253,16 @@ export function createFileStore(filePath: string): Store {
       await update((data) => {
         if (t === null) delete data.kv[TIMER_KEY];
         else data.kv[TIMER_KEY] = t;
+      });
+    },
+    async getTasks(seasonId) {
+      const data = await exclusive(read);
+      const tasks = data.kv[tasksKey(seasonId)];
+      return Array.isArray(tasks) ? (tasks as Task[]) : [];
+    },
+    async setTasks(seasonId, tasks) {
+      await update((data) => {
+        data.kv[tasksKey(seasonId)] = tasks;
       });
     },
   };

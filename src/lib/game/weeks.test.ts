@@ -29,15 +29,15 @@ describe('semanas', () => {
       gymTarget: 2,
       cardioTarget: 2,
       superRequired: false,
-      studyDaysRequired: 3,
+      daysRequired: 3,
     });
   });
 
   it('a semana 1 tem 10 e 11/10 de folga e exige 5 dias de estudo; a 2 também', () => {
     const g = game([], at('2026-10-06'));
-    expect(g.weeks[0]).toMatchObject({ start: '2026-10-05', end: '2026-10-11', studyDaysRequired: 5 });
-    expect(g.weeks[1]).toMatchObject({ start: '2026-10-12', end: '2026-10-18', studyDaysRequired: 5 });
-    expect(g.weeks[2].studyDaysRequired).toBe(7);
+    expect(g.weeks[0]).toMatchObject({ start: '2026-10-05', end: '2026-10-11', daysRequired: 5 });
+    expect(g.weeks[1]).toMatchObject({ start: '2026-10-12', end: '2026-10-18', daysRequired: 5 });
+    expect(g.weeks[2].daysRequired).toBe(7);
   });
 
   it('marca a semana atual e as fechadas', () => {
@@ -50,7 +50,7 @@ describe('semanas', () => {
   it('chefe derrotado com estudo em todos os dias, 4 treinos e 5 cardios com supercardio', () => {
     const g = game(perfectWeek(3), at('2026-10-26'));
     expect(g.weeks[2]).toMatchObject({
-      studyDaysMet: 7,
+      daysMet: 7,
       shieldDays: 0,
       gym: 4,
       cardio: 5,
@@ -62,7 +62,7 @@ describe('semanas', () => {
 
   it('chefe da semana 1 não exige estudo nas folgas', () => {
     const g = game(perfectWeek(1), at('2026-10-12'));
-    expect(g.weeks[0]).toMatchObject({ studyDaysMet: 5, studyDaysRequired: 5, bossDefeated: true });
+    expect(g.weeks[0]).toMatchObject({ daysMet: 5, daysRequired: 5, bossDefeated: true });
   });
 
   it('semana cheia sem supercardio conta no máximo 4 cardios e não derrota o chefe', () => {
@@ -86,7 +86,7 @@ describe('semanas', () => {
       superCardio('2026-10-23'),
     ];
     const g = game(records, at('2026-10-26'));
-    expect(g.weeks[2]).toMatchObject({ studyDaysMet: 6, studyDaysRequired: 7, bossDefeated: false });
+    expect(g.weeks[2]).toMatchObject({ daysMet: 6, daysRequired: 7, bossDefeated: false });
   });
 
   it('semana com um dia salvo por escudo não derrota o chefe', () => {
@@ -98,7 +98,7 @@ describe('semanas', () => {
     ];
     const g = game(records, at('2026-10-26'));
     const w = g.weeks[2];
-    expect(w).toMatchObject({ studyDaysMet: 6, shieldDays: 1, gym: 4, cardio: 5, hasSuper: true });
+    expect(w).toMatchObject({ daysMet: 6, shieldDays: 1, gym: 4, cardio: 5, hasSuper: true });
     expect(w.bossDefeated).toBe(false);
   });
 

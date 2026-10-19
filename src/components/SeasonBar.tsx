@@ -3,14 +3,14 @@
 // A barra da temporada: 80 segmentos de ferro forjado, um por dia (DESIGN.md, seção 6).
 
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
-import { season1 } from '@/config/season1';
+import { season } from '@/config/season';
 import { monthName } from '@/lib/time';
 import type { DayInfo, GameState } from '@/lib/types';
 import { Sparks } from './feedback';
 import { dayAriaLabel, dayTooltip } from './format';
 
 const WARM_KEY = 'forja:aquecida';
-const MIDPOINT = season1.chests.find((c) => c.kind === 'midpoint-grade')?.date ?? null;
+const MIDPOINT = season.chests.find((c) => c.kind === 'midpoint-grade')?.date ?? null;
 
 interface Props {
   state: GameState;
@@ -55,7 +55,7 @@ export function SeasonBar({ state, onSelectDay }: Props) {
 
   // Martelada quando o calor de hoje muda; faíscas quando a meta é batida.
   const todayHeat = todayInfo?.heat ?? null;
-  const todayMet = todayInfo?.studyMet ?? false;
+  const todayMet = todayInfo?.dayMet ?? false;
   const [seen, setSeen] = useState({ date: today, heat: todayHeat, met: todayMet });
   const [hit, setHit] = useState(false);
   const [sparkKey, setSparkKey] = useState(0);

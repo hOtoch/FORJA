@@ -4,7 +4,7 @@
 
 import { useState, useTransition } from 'react';
 import { addCardio } from '@/app/actions';
-import { season1 } from '@/config/season1';
+import { season } from '@/config/season';
 import { CARDIO_LABELS, isSuperCardio, validateCardio } from '@/lib/cardio';
 import type { CardioModality, GameState } from '@/lib/types';
 import { runAction, useToast } from '../feedback';
@@ -29,11 +29,11 @@ export function CardioDialog({
   const [error, setError] = useState<string | null>(null);
 
   const min = minutes === '' ? NaN : Number(minutes);
-  const isSuper = Number.isFinite(min) && isSuperCardio(modality, min, season1);
-  const alwaysSuper = season1.cardio.alwaysSuper.includes(modality);
+  const isSuper = Number.isFinite(min) && isSuperCardio(modality, min, season);
+  const alwaysSuper = season.cardio.alwaysSuper.includes(modality);
 
   function save() {
-    const invalid = validateCardio(modality, min, season1);
+    const invalid = validateCardio(modality, min, season);
     if (invalid) {
       setError(invalid);
       return;
@@ -107,7 +107,7 @@ export function CardioDialog({
         <p id="cardio-regra" className="mt-1 text-small text-muted">
           {alwaysSuper
             ? 'Pelada de qualquer duração conta como supercardio.'
-            : `Cardio conta a partir de ${season1.cardio.minMinutes} min. Bicicleta, caminhada ou esteira com ${season1.cardio.superMinutes} min ou mais é supercardio.`}
+            : `Cardio conta a partir de ${season.cardio.minMinutes} min. Bicicleta, caminhada ou esteira com ${season.cardio.superMinutes} min ou mais é supercardio.`}
         </p>
       </div>
 

@@ -80,7 +80,7 @@ export function Header({ state, onRegisterStudy, onUseBreak }: Props) {
         ) : null}
         {onRegisterStudy ? (
           <button type="button" className="btn btn-outline" onClick={onRegisterStudy}>
-            Registrar estudo
+            Registrar tempo
           </button>
         ) : null}
         <details className="relative">

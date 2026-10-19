@@ -38,7 +38,7 @@ export function computeStreak(input: DayInfo[], config: SeasonConfig, today: str
   for (const d of days) {
     if (d.date >= today) break;
     if (!d.breakKind) {
-      if (d.studyMet) {
+      if (d.dayMet) {
         current += 1;
         prevFailed = false;
       } else {
@@ -64,7 +64,7 @@ export function computeStreak(input: DayInfo[], config: SeasonConfig, today: str
   }
 
   const todayDay = days.find((d) => d.date === today);
-  if (todayDay && !todayDay.breakKind && todayDay.studyMet) {
+  if (todayDay && !todayDay.breakKind && todayDay.dayMet) {
     current += 1;
     best = Math.max(best, current);
     timeline.push({ date: today, streak: current });

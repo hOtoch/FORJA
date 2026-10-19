@@ -5,57 +5,63 @@
 // coisa feita é um golpe.
 
 import { useState } from 'react';
-import { season1 } from '@/config/season1';
-import { formatBRL } from '@/lib/cardio';
+import { season } from '@/config/season';
 import { daysBetween, longDate, shortDate } from '@/lib/time';
 import type { DayInfo, GameState, WeekInfo } from '@/lib/types';
 import { bossOfWeek } from './bosses';
 import { Sparks } from './feedback';
-import { joinPt, plural, WEEKDAY_SHORT } from './format';
+import { bossPrize, counterAmount, joinPt, plural, WEEKDAY_SHORT } from './format';
 import { Medallion, Sprite } from './pixel';
 import { Meter } from './viz';
 
 function cardioNumbers(w: WeekInfo) {
   const needSuper = w.superRequired && !w.hasSuper;
-  const effective = needSuper ? Math.min(w.cardio, season1.goals.cardioMaxWithoutSuper) : w.cardio;
+  const effective = needSuper ? Math.min(w.cardio, season.goals.cardioMaxWithoutSuper) : w.cardio;
   const left = Math.max(0, w.cardioTarget - effective - (needSuper ? 1 : 0));
   return { needSuper, effective, left };
 }
 
-/** Vida total e golpes já dados. */
+/** Vida total e golpes já dados. Cada contador da semana vale 1 de vida (cai quando bate a meta). */
 export function bossHp(w: WeekInfo) {
   const { effective } = cardioNumbers(w);
-  const total = w.studyDaysRequired + w.gymTarget + w.cardioTarget;
+  const total = w.daysRequired + w.gymTarget + w.cardioTarget + w.counters.length;
   const hits =
-    Math.min(w.studyDaysMet, w.studyDaysRequired) + Math.min(w.gym, w.gymTarget) + Math.min(effective, w.cardioTarget);
+    Math.min(w.daysMet, w.daysRequired) +
+    Math.min(w.gym, w.gymTarget) +
+    Math.min(effective, w.cardioTarget) +
+    w.counters.filter((c) => c.count >= c.target).length;
   return { total, left: Math.max(0, total - hits) };
 }
 
 function missingSentence(state: GameState, w: WeekInfo): string {
-  if (w.bossDefeated) {
-    const prize = w.isFinal
-      ? `${season1.xp.boss} XP e ${formatBRL(season1.fund.finalBossCents)} no Fundo`
-      : `1 escudo, ${season1.xp.boss} XP e ${formatBRL(season1.fund.bossCents)} no Fundo`;
-    return `Derrotado. Você ganhou ${prize}.`;
-  }
-  if (w.shieldDays > 0) return 'Um dia foi salvo por escudo, então este chefe não cai. Treinos e cardios ainda rendem.';
+  if (w.bossRescued) return `Derrotado no evento de resgate. Você ganhou ${bossPrize(w.isFinal, true)}.`;
+  if (w.bossDefeated) return `Derrotado. Você ganhou ${bossPrize(w.isFinal)}.`;
+  const open = !w.isClosed;
+  if (w.shieldDays > 0 && !open) return 'Um dia foi salvo por escudo, então este chefe não caiu.';
   const { needSuper, left } = cardioNumbers(w);
   const missing: string[] = [];
-  const studyLeft = w.studyDaysRequired - w.studyDaysMet;
-  if (studyLeft > 0) missing.push(plural(studyLeft, 'dia de estudo', 'dias de estudo'));
+  // dias que ainda vêm pela frente; os que já passaram sem a meta viram minutos para compensar
+  const studyLeft = state.days.filter(
+    (d) => d.weekIndex === w.index && !d.breakKind && (d.isFuture || (d.isToday && !d.dayMet)),
+  ).length;
+  for (const [id, n] of Object.entries(w.owedByBlock)) missing.push(`${n} min de ${blockPhrase(id)} para compensar`);
+  if (studyLeft > 0) missing.push(plural(studyLeft, 'dia de rotina', 'dias de rotina'));
   const gymLeft = Math.max(0, w.gymTarget - w.gym);
   if (gymLeft > 0) missing.push(plural(gymLeft, 'treino', 'treinos'));
   if (left > 0) missing.push(plural(left, 'cardio', 'cardios'));
   if (needSuper) missing.push('o supercardio');
+  for (const c of w.counters) if (c.count < c.target) missing.push(counterAmount(c.id, c.target - c.count));
   if (missing.length === 0) return 'Tudo cumprido. O chefe cai quando a semana fechar.';
   const daysLeft = daysBetween(state.today, w.end) + 1;
   return `Faltam ${joinPt(missing)}, em ${daysLeft === 1 ? '1 dia' : `${daysLeft} dias`}.`;
 }
 
-/** Opacidade do ícone de estudo: cheio se cumpriu, pela metade se estudou pouco. */
+const blockPhrase = (id: string) => season.blocks.find((b) => b.id === id)?.phrase ?? id;
+
+/** Opacidade do ícone da rotina: cheio se cumpriu ou foi compensado, pela metade se fez pouco. */
 function studyOpacity(d: DayInfo): number {
-  if (d.studyMet) return 1;
-  if (d.studyMinutes > 0) return 0.55;
+  if (d.dayMet || d.dayRedeemed) return 1;
+  if (d.workMinutes > 0) return 0.55;
   return 0.18;
 }
 
@@ -92,7 +98,13 @@ function WeekStrip({ days }: { days: DayInfo[] }) {
               off
                 ? 'folga'
                 : [
-                    d.studyMet ? 'estudo cumprido' : d.studyMinutes > 0 ? `${d.studyMinutes} min de estudo` : 'sem estudo',
+                    d.dayMet
+                      ? 'rotina cumprida'
+                      : d.dayRedeemed
+                        ? 'rotina compensada em outro dia'
+                        : d.workMinutes > 0
+                          ? `${d.workMinutes} min de foco`
+                          : 'nada registrado',
                     d.gym > 0 ? 'treino' : null,
                     d.cardio > 0 ? (d.superCardio > 0 ? 'supercardio' : 'cardio') : null,
                   ]
@@ -112,7 +124,12 @@ function WeekStrip({ days }: { days: DayInfo[] }) {
               </span>
             ) : (
               <span className="flex flex-col items-center gap-1" aria-hidden="true">
-                <Sprite name="icone-livro" base={12} scale={2} style={{ opacity: studyOpacity(d) }} />
+                <span className="relative" title={d.dayRedeemed ? 'Compensado com minutos a mais em outro dia' : undefined}>
+                  <Sprite name="icone-livro" base={12} scale={2} style={{ opacity: studyOpacity(d) }} />
+                  {d.dayRedeemed ? (
+                    <span className="absolute -right-2 -top-1.5 text-micro font-bold text-[var(--money)]">+</span>
+                  ) : null}
+                </span>
                 <Sprite name="icone-martelo" base={12} scale={2} style={{ opacity: d.gym > 0 ? 1 : 0.18 }} />
                 <span className="relative">
                   <Sprite name="icone-coracao" base={12} scale={2} style={{ opacity: d.cardio > 0 ? 1 : 0.18 }} />
@@ -155,7 +172,7 @@ export function BossPanel({ state }: { state: GameState }) {
           <BossFigure sprite={first.sprite} defeated={false} title={first.lore} />
           <p className="text-body">
             {state.phase === 'before'
-              ? `${first.name} aparece na ${longDate(season1.start)}.`
+              ? `${first.name} aparece na ${longDate(season.start)}.`
               : `A temporada acabou. Chefes derrotados: ${beaten} de ${state.weeks.length}.`}
           </p>
         </div>
@@ -208,9 +225,16 @@ export function BossPanel({ state }: { state: GameState }) {
 
       <dl className="mt-3 grid grid-cols-3 gap-2 text-center">
         <div>
-          <dt className="text-micro font-medium text-muted">Estudo</dt>
+          <dt className="text-micro font-medium text-muted">Rotina</dt>
           <dd className="text-body font-bold num">
-            {w.studyDaysMet} de {w.studyDaysRequired}
+            {w.daysMet} de {w.daysRequired}
+            {w.daysRedeemed > 0 ? (
+              <span className="ml-1 text-micro font-medium text-muted">
+                ({w.daysRedeemed} {w.daysRedeemed === 1 ? 'compensado' : 'compensados'})
+              </span>
+            ) : w.surplusMinutes > 0 ? (
+              <span className="ml-1 text-micro font-medium text-muted">(+{w.surplusMinutes} min guardados)</span>
+            ) : null}
           </dd>
         </div>
         <div>
@@ -228,6 +252,14 @@ export function BossPanel({ state }: { state: GameState }) {
             ) : null}
           </dd>
         </div>
+        {w.counters.map((c) => (
+          <div key={c.id}>
+            <dt className="text-micro font-medium text-muted">{season.counters.find((x) => x.id === c.id)?.name ?? c.id}</dt>
+            <dd className="text-body font-bold num">
+              {Math.min(c.count, c.target)} de {c.target}
+            </dd>
+          </div>
+        ))}
       </dl>
     </section>
   );

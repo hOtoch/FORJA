@@ -74,7 +74,7 @@ export default async function MapaPage() {
               {state.weeks.filter((w) => w.bossDefeated).length} de {state.weeks.length} derrotados
             </span>
           </div>
-          <ol className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <ol className={`grid grid-cols-2 gap-3 sm:grid-cols-3 ${state.weeks.length % 6 === 0 ? 'lg:grid-cols-6' : 'lg:grid-cols-5'}`}>
             {state.weeks.map((w) => {
               const boss = bossOfWeek(w.index, w.isFinal);
               return (

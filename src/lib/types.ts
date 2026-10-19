@@ -2,7 +2,7 @@
 
 // ---------- Registros (o que fica guardado) ----------
 
-export type RecordKind = 'study' | 'gym' | 'cardio' | 'break' | 'deposit' | 'client';
+export type RecordKind = 'study' | 'work' | 'count' | 'gym' | 'cardio' | 'break' | 'deposit' | 'client' | 'rescue';
 
 export interface BaseRecord<K extends RecordKind, D> {
   id: string;
@@ -25,8 +25,26 @@ export type StudyRecord = BaseRecord<
     endedAt?: string;
     /** Aulas concluídas nesta sessão. */
     lessonIds: number[];
+    /** O que foi aprendido, escrito ao encerrar (obrigatório desde a temporada 2). */
+    summary?: string;
   }
 >;
+
+/** Tempo num bloco da rotina que não é estudo de curso (prospecção, vagas, projeto, LinkedIn). */
+export type WorkRecord = BaseRecord<
+  'work',
+  {
+    block: string;
+    minutes: number;
+    source: 'timer' | 'manual';
+    startedAt?: string;
+    endedAt?: string;
+    note?: string;
+  }
+>;
+
+/** Contador da rotina (candidaturas enviadas, contatos de prospecção, posts no LinkedIn). */
+export type CountRecord = BaseRecord<'count', { counter: string; amount: number }>;
 
 export type GymRecord = BaseRecord<'gym', Record<string, never>>;
 
@@ -61,17 +79,26 @@ export type ClientRecord = BaseRecord<
   }
 >;
 
+/** Desafio de resgate que não dá para medir pelos registros (prospecção, leitura), marcado à mão. */
+export type RescueRecord = BaseRecord<'rescue', { weekIndex: number }>;
+
 export type ForjaRecord =
   | StudyRecord
+  | WorkRecord
+  | CountRecord
   | GymRecord
   | CardioRecord
   | BreakRecord
   | DepositRecord
-  | ClientRecord;
+  | ClientRecord
+  | RescueRecord;
 
 // ---------- Timer em andamento (kv['timer']) ----------
 
 export interface TimerState {
+  /** Bloco da rotina; ausente = estudo (timers antigos). */
+  block?: string;
+  /** Curso, no bloco de estudo; vazio nos outros blocos. */
   courseSlug: string;
   /** ISO; define o dia do jogo da sessão. */
   startedAt: string;
@@ -82,6 +109,20 @@ export interface TimerState {
   /** ISO; última confirmação de presença (ou início/retomada). */
   lastConfirmAt: string;
   pomodoro: boolean;
+}
+
+// ---------- Tarefas avulsas (kv['tasks:<temporada>']) ----------
+
+/** Tarefa sem dia fixo. Não é um registro: pode ser editada, concluída e reaberta. */
+export interface Task {
+  id: string;
+  title: string;
+  /** Bloco da rotina a que a tarefa pertence (opcional). */
+  block: string | null;
+  createdAt: string;
+  /** Dia do jogo em que foi concluída; null = em aberto. */
+  doneDay: string | null;
+  doneAt: string | null;
 }
 
 // ---------- Catálogo de cursos (src/config/courses.json) ----------
@@ -119,6 +160,60 @@ export interface ChestConfig {
   prizes?: Partial<Record<'S' | 'A' | 'B' | 'C', string>>;
 }
 
+/**
+ * Desafio do evento de resgate: sempre algo além da rotina. Os medidos pelos registros:
+ * `block-minutes` (minutos a mais que a meta do bloco `block` naquele dia), `cardio-minutes`
+ * (minutos de cardio somados no dia, acima do supercardio) e `counter` (quanto o contador `counter`
+ * soma no dia). `manual`: marcado à mão ("Concluí").
+ *
+ * A quantidade cresce com o mapa: `base + step × (semana do chefe − 1)`, até `max`.
+ * Em `title` e `description`, `{n}` vira a quantidade e `{total}` o total do bloco no dia (meta + n).
+ */
+export interface RescueChallengeConfig {
+  id: string;
+  title: string;
+  description: string;
+  kind: 'block-minutes' | 'cardio-minutes' | 'counter' | 'manual';
+  block?: string;
+  counter?: string;
+  base: number;
+  step: number;
+  max?: number;
+}
+
+export type AttrName = 'inteligencia' | 'influencia' | 'forca' | 'vigor';
+
+/**
+ * Bloco da rotina diária. `estudo` é o estudo de cursos (StudyRecord); os outros são WorkRecord.
+ * `minutes[0..6]` = meta de segunda a domingo.
+ */
+export interface BlockConfig {
+  id: string;
+  name: string;
+  /** Como aparece no meio da frase ("Faltam 40 min de {phrase} hoje"). */
+  phrase: string;
+  /** Sprite do ícone (public/pixel). */
+  icon: string;
+  minutes: [number, number, number, number, number, number, number];
+  /** Atributo que o XP do bloco alimenta. */
+  attr: AttrName;
+}
+
+/** Contador com meta semanal (vale para o chefe). */
+export interface CounterConfig {
+  id: string;
+  /** "Candidaturas" */
+  name: string;
+  /** "candidatura" / "candidaturas" */
+  unit: [string, string];
+  weekTarget: number;
+  /** Botões de soma rápida (ex.: [1, 5]). */
+  steps: number[];
+  /** XP por unidade. */
+  xp: number;
+  attr: AttrName;
+}
+
 export interface SeasonConfig {
   id: string;
   name: string;
@@ -128,8 +223,13 @@ export interface SeasonConfig {
   dayStartHour: number;
   plannedBreaks: string[];
   reserveBreaks: number;
+  /** Blocos da rotina; o dia está cumprido quando todos batem a meta daquele dia da semana. */
+  blocks: BlockConfig[];
+  /** Contadores com meta semanal (a semana final, parcial, pede a parte proporcional). */
+  counters: CounterConfig[];
+  /** O que aparece no painel. */
+  features: { fund: boolean; chests: boolean };
   goals: {
-    studyMinutes: number;
     gymPerWeek: number;
     cardioPerWeek: number;
     finalWeek: { gym: number; cardio: number; requireSuper: boolean };
@@ -142,14 +242,15 @@ export interface SeasonConfig {
     alwaysSuper: CardioModality[];
   };
   xp: {
-    perStudyMinute: number;
-    studyDailyCap: number;
+    perWorkMinute: number;
+    workDailyCap: number;
     gym: number;
     cardio: number;
     superCardio: number;
     module: number;
     course: number;
     boss: number;
+    task: number;
   };
   levelXp: (n: number) => number;
   titles: [number, string][];
@@ -165,6 +266,8 @@ export interface SeasonConfig {
     perfectCents: number;
   };
   chests: ChestConfig[];
+  /** Chefe que escapou ganha um evento de resgate num dia sorteado da semana seguinte. */
+  rescue: { challenges: RescueChallengeConfig[] };
   courses: {
     queue: string[];
     initialCompleted: Record<string, number[]>;
@@ -198,15 +301,39 @@ export interface DayInfo {
   isToday: boolean;
   breakKind: 'planned' | 'reserve' | null;
   studyMinutes: number;
-  studyMet: boolean;
+  dayMet: boolean;
   shieldUsed: boolean;
+  /** Meta não cumprida, mas compensada por minutos a mais em outros dias da mesma semana. */
+  dayRedeemed: boolean;
+  /** Minutos de cada bloco no dia e a meta daquele dia da semana. */
+  blocks: DayBlock[];
+  /** Soma dos minutos de todos os blocos. */
+  workMinutes: number;
+  /** Soma das metas dos blocos (0 em dia sem meta). */
+  goalMinutes: number;
+  /** Quanto cada contador somou no dia. */
+  counts: Record<string, number>;
   gym: number;
   cardio: number;
+  cardioMinutes: number;
   superCardio: number;
   /** null = futuro ou hoje sem nada */
   heat: Heat | null;
   xp: number;
   fundCents: number;
+}
+
+export interface DayBlock {
+  id: string;
+  minutes: number;
+  goal: number;
+  met: boolean;
+}
+
+export interface WeekCounter {
+  id: string;
+  count: number;
+  target: number;
 }
 
 export interface WeekInfo {
@@ -216,8 +343,8 @@ export interface WeekInfo {
   isFinal: boolean;
   isClosed: boolean;
   isCurrent: boolean;
-  studyDaysRequired: number;
-  studyDaysMet: number;
+  daysRequired: number;
+  daysMet: number;
   shieldDays: number;
   gym: number;
   gymTarget: number;
@@ -225,9 +352,48 @@ export interface WeekInfo {
   cardioTarget: number;
   hasSuper: boolean;
   superRequired: boolean;
+  /** Dias que ficaram sem a meta mas foram compensados por minutos a mais na semana. */
+  daysRedeemed: number;
+  /** Minutos que ainda faltam para compensar os dias fechados sem a meta (0 = nada devendo). */
+  minutesOwed: number;
+  /** O mesmo, por bloco (só os que devem). */
+  owedByBlock: Record<string, number>;
+  /** Contadores da semana contra a meta. */
+  counters: WeekCounter[];
+  /** Minutos a mais na semana que ainda não foram usados para compensar nada. */
+  surplusMinutes: number;
   bossDefeated: boolean;
+  /** Derrotado pelo evento de resgate (e não pelas metas da semana). */
+  bossRescued: boolean;
+  /** Evento de resgate deste chefe, se ele escapou; acontece na semana seguinte. */
+  rescue: RescueEvent | null;
   fundCents: number;
   depositedCents: number | null;
+}
+
+export interface RescueEvent {
+  /** Semana do chefe que escapou. */
+  weekIndex: number;
+  /** Dia sorteado do evento (na semana seguinte). */
+  day: string;
+  challengeId: string;
+  title: string;
+  description: string;
+  kind: RescueChallengeConfig['kind'];
+  /** Nível do desafio: a semana do chefe que escapou (1 = começo do mapa). */
+  level: number;
+  /** "fácil", "médio", "difícil" ou "lendário", pelo nível. */
+  tier: string;
+  /** Quantidade pedida (minutos a mais, minutos de cardio, clientes, páginas). */
+  amount: number;
+  target: number;
+  progress: number;
+  /** Progresso pronto para a tela ("45 de 90 min", "a fazer"). */
+  progressLabel: string;
+  /** upcoming: o dia ainda não chegou (o desafio fica em segredo); active: é hoje. */
+  state: 'upcoming' | 'active' | 'done' | 'missed';
+  /** Registro do "Concluí" (desafios manuais), para desfazer. */
+  recordId: string | null;
 }
 
 export interface ChestState {
@@ -289,12 +455,14 @@ export interface GameState {
   days: DayInfo[];
   weeks: WeekInfo[];
   currentWeek: WeekInfo | null;
+  /** Evento de resgate que cai na semana atual (do chefe da semana anterior), se houver. */
+  rescue: RescueEvent | null;
   todayInfo: DayInfo | null;
   yesterdayMissedUnprotected: boolean;
   streak: { current: number; best: number; shields: number };
   xp: {
     total: number;
-    byAttr: { inteligencia: number; forca: number; vigor: number };
+    byAttr: Record<AttrName, number>;
     level: number;
     title: string;
     levelStartXp: number;
@@ -324,6 +492,7 @@ export interface GameState {
   medals: string[];
   breaks: { reserveUsed: number; reserveLeft: number; canUseToday: boolean };
   timer: TimerView | null;
+  tasks: { open: Task[]; done: Task[] };
   status: {
     studyDone: boolean;
     weekAtRisk: boolean;

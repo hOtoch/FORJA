@@ -1,13 +1,15 @@
 'use client';
 
-// "Encerrar sessão": confirma até qual aula você chegou e salva (DESIGN.md, seção 6, Timer).
+// "Encerrar sessão": no estudo, confirma até qual aula você chegou; nos outros blocos, só salva
+// (DESIGN.md, seção 6, Timer).
 
 import { useState, useTransition } from 'react';
 import { discardTimer, stopTimer } from '@/app/actions';
 import type { GameState } from '@/lib/types';
 import { runAction, useToast } from '../feedback';
-import { courseBySlug, lessonName, minutesLabel, pendingLessons } from '../format';
+import { blockName, courseBySlug, lessonName, minutesLabel, pendingLessons } from '../format';
 import type { StopInfo } from '../TodayPanel';
+import { SummaryField, summaryReady } from './SummaryField';
 
 const MIN = 60_000;
 
@@ -22,22 +24,32 @@ export function StopSessionDialog({
 }) {
   const toast = useToast();
   const [pending, startTransition] = useTransition();
-  const course = courseBySlug(state, state.timer?.courseSlug ?? state.currentCourseSlug);
-  const options = pendingLessons(course).slice(0, 8);
+  const block = state.timer?.block ?? 'estudo';
+  const isStudy = block === 'estudo';
+  const course = isStudy ? courseBySlug(state, state.timer?.courseSlug ?? state.currentCourseSlug) : undefined;
+  const options = isStudy ? pendingLessons(course).slice(0, 8) : [];
   const [upTo, setUpTo] = useState<number | null>(options[0]?.id ?? null);
   const [countGap, setCountGap] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [summary, setSummary] = useState('');
 
   const selectedIndex = upTo === null ? -1 : options.findIndex((o) => o.id === upTo);
   const lessonIds = options.slice(0, selectedIndex + 1).map((o) => o.id);
   const minutes = Math.floor((info.creditedMs + (countGap ? info.pendingMs : 0)) / MIN);
   const gapMin = Math.floor(info.pendingMs / MIN);
 
+  // sessão de estudo com tempo precisa do resumo; sessão de 0 min não salva nada
+  const needsSummary = isStudy && minutes >= 1;
+
   function save() {
+    if (needsSummary && !summaryReady(summary)) {
+      setError('Escreva o que você aprendeu antes de salvar.');
+      return;
+    }
     setError(null);
     startTransition(async () => {
-      const r = await runAction(() => stopTimer(lessonIds, countGap), 'A sessão');
+      const r = await runAction(() => stopTimer(lessonIds, countGap, needsSummary ? summary : undefined), 'A sessão');
       if (!r.ok) {
         setError(r.error);
         return;
@@ -70,7 +82,7 @@ export function StopSessionDialog({
       }}
     >
       <p className="text-body num">
-        {minutes} min nesta sessão{course ? `, em ${course.name}` : ''}.
+        {minutes} min nesta sessão{course ? `, em ${course.name}` : isStudy ? '' : ` de ${blockName(block)}`}.
       </p>
       {gapMin >= 1 ? (
         <label className="mt-3 flex cursor-pointer items-start gap-2 text-body">
@@ -84,6 +96,7 @@ export function StopSessionDialog({
         </label>
       ) : null}
 
+      {isStudy ? (
       <fieldset className="mt-4">
         <legend className="text-body font-bold">Até qual aula você chegou?</legend>
         {options.length === 0 ? (
@@ -125,6 +138,13 @@ export function StopSessionDialog({
         )}
         <p className="mt-2 text-small text-muted">Marcar uma aula conclui também as anteriores.</p>
       </fieldset>
+      ) : null}
+
+      {needsSummary ? (
+        <div className="mt-4">
+          <SummaryField id="sessao-resumo" value={summary} onChange={setSummary} invalid={error !== null} />
+        </div>
+      ) : null}
 
       {error ? (
         <p role="alert" className="band mt-4 text-body font-medium">
@@ -133,7 +153,7 @@ export function StopSessionDialog({
       ) : null}
 
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-        <button type="submit" className="btn btn-ink" disabled={pending}>
+        <button type="submit" className="btn btn-ink" disabled={pending || (needsSummary && !summaryReady(summary))}>
           Salvar sessão
         </button>
         {confirmDiscard ? (

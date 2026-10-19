@@ -13,8 +13,12 @@ export const season1: SeasonConfig = {
   dayStartHour: 4,
   plannedBreaks: ['2026-10-10', '2026-10-11', '2026-10-12', '2026-10-13'],
   reserveBreaks: 2,
+  blocks: [
+    { id: 'estudo', name: 'Estudo', phrase: 'estudo', icon: 'icone-livro', minutes: [60, 60, 60, 60, 60, 60, 60], attr: 'inteligencia' },
+  ],
+  counters: [],
+  features: { fund: true, chests: true },
   goals: {
-    studyMinutes: 60,
     gymPerWeek: 4,
     cardioPerWeek: 5,
     finalWeek: { gym: 2, cardio: 2, requireSuper: false },
@@ -27,14 +31,15 @@ export const season1: SeasonConfig = {
     alwaysSuper: ['pelada'],
   },
   xp: {
-    perStudyMinute: 1,
-    studyDailyCap: 120,
+    perWorkMinute: 1,
+    workDailyCap: 120,
     gym: 60,
     cardio: 20,
     superCardio: 60,
     module: 50,
     course: 200,
     boss: 100,
+    task: 25,
   },
   levelXp: (n) => 50 * n * (n + 1),
   titles: [
@@ -96,6 +101,49 @@ export const season1: SeasonConfig = {
       },
     },
   ],
+  // Os desafios endurecem a cada semana do mapa (semana 1 → semana 11) e pedem sempre algo além
+  // da rotina: nada que a semana normal já peça (treino, cardio comum, supercardio de 60 min).
+  rescue: {
+    challenges: [
+      {
+        id: 'estudo-extra',
+        title: 'Estudar {n} min a mais',
+        description: 'Estude {total} min no dia do evento: a meta de 1h e mais {n} min.',
+        kind: 'block-minutes',
+        block: 'estudo',
+        base: 60, // 60 → 180 min a mais
+        step: 15,
+        max: 180,
+      },
+      {
+        id: 'cardio-longo',
+        title: '{n} min de cardio',
+        description: 'Some {n} min de cardio no dia do evento, bem além do supercardio de 1h.',
+        kind: 'cardio-minutes',
+        base: 90, // 90 → 150 min
+        step: 6,
+        max: 150,
+      },
+      {
+        id: 'prospeccao',
+        title: 'Prospectar {n} clientes',
+        description: 'Aborde {n} clientes em potencial no dia do evento.',
+        kind: 'manual',
+        base: 20, // 20 → 60 clientes
+        step: 4,
+        max: 60,
+      },
+      {
+        id: 'leitura',
+        title: 'Ler {n} páginas',
+        description: 'Leia {n} páginas de um livro no dia do evento.',
+        kind: 'manual',
+        base: 30, // 30 → 80 páginas
+        step: 5,
+        max: 80,
+      },
+    ],
+  },
   courses: {
     queue: ['desenvolvimento-assistido-por-ia', 'python-full-ai-profissional', 'python-full-ai-2025'],
     initialCompleted: {

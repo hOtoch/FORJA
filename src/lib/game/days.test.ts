@@ -25,9 +25,9 @@ describe('dias da temporada', () => {
       [study('2026-10-14', 30), study('2026-10-14', 40), study('2026-10-15', 59), study('2026-10-16', 60)],
       at('2026-10-20'),
     );
-    expect(dayOf(g, '2026-10-14')).toMatchObject({ studyMinutes: 70, studyMet: true });
-    expect(dayOf(g, '2026-10-15')).toMatchObject({ studyMinutes: 59, studyMet: false });
-    expect(dayOf(g, '2026-10-16')).toMatchObject({ studyMinutes: 60, studyMet: true });
+    expect(dayOf(g, '2026-10-14')).toMatchObject({ studyMinutes: 70, dayMet: true });
+    expect(dayOf(g, '2026-10-15')).toMatchObject({ studyMinutes: 59, dayMet: false });
+    expect(dayOf(g, '2026-10-16')).toMatchObject({ studyMinutes: 60, dayMet: true });
   });
 
   it('contam treinos, cardios e supercardios', () => {

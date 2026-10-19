@@ -1,7 +1,7 @@
 // Nota (revisão 2): a marca do ferreiro punçonada num quadro de 88 × 88 (tracejada enquanto
 // é prevista, sólida em 23/12) e um medidor por hábito, com a faixa da próxima letra.
 
-import { season1 } from '@/config/season1';
+import { season } from '@/config/season';
 import type { GameState, GradeLetter } from '@/lib/types';
 import { fmtPct } from './format';
 import { Meter } from './viz';
@@ -13,7 +13,7 @@ function hint(letter: GradeLetter | null, totalPct: number, final: boolean): str
   if (final) return `Média final de ${fmtPct(totalPct)}.`;
   const up = NEXT_UP[letter];
   return up
-    ? `Média de ${fmtPct(totalPct)}. Com ${season1.grade[up]}%, sobe para ${up}.`
+    ? `Média de ${fmtPct(totalPct)}. Com ${season.grade[up]}%, sobe para ${up}.`
     : `Média de ${fmtPct(totalPct)}. Mantenha o ritmo até 23/12.`;
 }
 
@@ -21,7 +21,7 @@ export function GradeMark({ state }: { state: GameState }) {
   const { grade } = state;
   const final = grade.isFinal;
   const rows = [
-    { name: 'Estudo', pct: grade.studyPct },
+    { name: 'Rotina', pct: grade.studyPct },
     { name: 'Academia', pct: grade.gymPct },
     { name: 'Cardio', pct: grade.cardioPct },
   ];
@@ -32,7 +32,7 @@ export function GradeMark({ state }: { state: GameState }) {
         <h2 id="nota-titulo" className="card-title">
           {final ? 'Nota final' : 'Nota prevista'}
         </h2>
-        <span className="card-meta">S a partir de {season1.grade.S}%</span>
+        <span className="card-meta">S a partir de {season.grade.S}%</span>
       </div>
 
       <div className="flex items-center gap-5">

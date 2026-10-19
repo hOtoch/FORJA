@@ -1,7 +1,7 @@
 // Fundo Réveillon: quanto foi ganho, depositado e o que está pendente (data-model.md, "Fundo").
 
 import type { DayInfo, ForjaRecord, GameState, SeasonConfig, WeekInfo } from '@/lib/types';
-import { inSeason } from './days';
+import { inSeason, dayCountsForWeek } from './days';
 import { tallyWeek } from './weeks';
 
 export function computeFund(weeks: WeekInfo[], records: ForjaRecord[], config: SeasonConfig): GameState['fund'] {
@@ -16,9 +16,10 @@ export function computeFund(weeks: WeekInfo[], records: ForjaRecord[], config: S
     depositedCents,
     perfectCents: config.fund.perfectCents,
     clientBonusCents,
+    // um chefe resgatado depois do depósito deixa a diferença pendente
     pending: weeks
-      .filter((w) => w.isClosed && w.depositedCents === null && w.fundCents > 0)
-      .map((w) => ({ weekIndex: w.index, amountCents: w.fundCents })),
+      .filter((w) => w.isClosed && w.fundCents > (w.depositedCents ?? 0))
+      .map((w) => ({ weekIndex: w.index, amountCents: w.fundCents - (w.depositedCents ?? 0) })),
   };
 }
 
@@ -47,7 +48,7 @@ export function dayFundCents(
     for (const d of days) {
       if (d.weekIndex !== w.index) continue;
       let cents = 0;
-      if (!d.breakKind && d.studyMet && !d.shieldUsed) cents += f.studyDayCents;
+      if (dayCountsForWeek(d)) cents += f.studyDayCents;
       const g = Math.min(d.gym, gymLeft);
       gymLeft -= g;
       cents += g * f.gymCents;

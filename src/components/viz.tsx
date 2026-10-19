@@ -127,7 +127,7 @@ const PLOT_H = 132;
 const BASE = PAD_T + PLOT_H;
 
 function niceMax(values: number[], goal: number): number {
-  const top = Math.max(goal * 2, ...values);
+  const top = Math.max(goal * 1.25, ...values);
   return Math.ceil(top / 30) * 30;
 }
 
@@ -261,7 +261,7 @@ export function StudyChart({ bars, goal, title }: { bars: StudyBar[]; goal: numb
         <span className="inline-block h-[2px] w-5 bg-ink" />
         meta de {goal} min
         <span className="ml-3 inline-block h-3 w-3 rounded-[2px] bg-[var(--heat-2)]" />
-        minutos de estudo
+        minutos de foco
       </p>
 
       <table id={tableId} className="sr-only">
@@ -269,7 +269,7 @@ export function StudyChart({ bars, goal, title }: { bars: StudyBar[]; goal: numb
         <thead>
           <tr>
             <th scope="col">Dia</th>
-            <th scope="col">Minutos de estudo</th>
+            <th scope="col">Minutos de foco</th>
           </tr>
         </thead>
         <tbody>

@@ -7,11 +7,12 @@
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { courseCatalog, season1 } from '@/config/season1';
+import { courseCatalog, season } from '@/config/season';
 import { requireSession, safeEqual, SESSION_COOKIE, SESSION_MAX_AGE, signSession } from '@/lib/auth';
 import { clientBonusCents, isSuperCardio, validateCardio } from '@/lib/cardio';
 import { computeGameState } from '@/lib/game';
 import { getStore, type Store } from '@/lib/store';
+import { SUMMARY_MAX, SUMMARY_MIN } from '@/lib/summary';
 import { addDays, gameDay, now } from '@/lib/time';
 import {
   timerConfirmPresence,
@@ -27,9 +28,13 @@ import type {
   CardioRecord,
   CatalogCourse,
   ClientRecord,
+  CountRecord,
   DepositRecord,
   GymRecord,
+  RescueRecord,
   StudyRecord,
+  Task,
+  WorkRecord,
 } from '@/lib/types';
 
 // ---------- Mensagens ----------
@@ -58,11 +63,24 @@ const MSG = {
   weekOpen: 'Essa semana ainda não fechou.',
   depositDone: 'Esse depósito já foi confirmado.',
   contract: 'Informe o valor do contrato.',
+  noRescue: 'Não há evento de resgate hoje.',
+  rescueAuto: 'Este desafio conta sozinho pelos registros do dia.',
+  rescueDone: 'Este resgate já foi concluído.',
+  block: 'Escolha um bloco da rotina.',
+  studyBlock: 'Estudo de curso se registra pelo formulário de estudo.',
+  counter: 'Escolha um contador.',
+  amount: 'Informe uma quantidade inteira de 1 a 500.',
+  taskTitle: 'Escreva a tarefa (até 200 caracteres).',
+  taskNotFound: 'Tarefa não encontrada.',
+  summary: 'Escreva um resumo do que você aprendeu, com pelo menos 20 caracteres.',
+  summaryMax: 'O resumo pode ter no máximo 2.000 caracteres.',
 } as const;
 
 const MAX_MINUTES = 600;
 const MAX_NOTE = 200;
-const UNDOABLE_KINDS = new Set(['study', 'gym', 'cardio', 'client']);
+const UNDOABLE_KINDS = new Set(['study', 'work', 'count', 'gym', 'cardio', 'client', 'rescue']);
+const MAX_COUNT = 500;
+const MAX_TASK = 200;
 const MODALITIES: CardioModality[] = ['esteira', 'bicicleta', 'caminhada', 'eliptico', 'pelada', 'outro'];
 
 // ---------- Apoio ----------
@@ -94,7 +112,7 @@ async function withSession<T>(fn: (ctx: Ctx) => Promise<ActionResult<T>>): Promi
   let result: ActionResult<T>;
   try {
     const instant = now();
-    const today = gameDay(instant, season1.timeZone, season1.dayStartHour);
+    const today = gameDay(instant, season.timeZone, season.dayStartHour);
     result = await fn({ store: getStore(), instant, today, yesterday: addDays(today, -1) });
   } catch (err) {
     console.error('[forja] falha na action:', err);
@@ -134,14 +152,30 @@ function minutesError(minutes: unknown, min: number): string | null {
   return null;
 }
 
+/** Resumo limpo, ou a mensagem de erro. */
+function cleanSummary(summary: unknown): { ok: true; text: string } | { ok: false; error: string } {
+  const text = typeof summary === 'string' ? summary.trim() : '';
+  if (text.length < SUMMARY_MIN) return { ok: false, error: MSG.summary };
+  if (text.length > SUMMARY_MAX) return { ok: false, error: MSG.summaryMax };
+  return { ok: true, text };
+}
+
 function newId(): string {
   return crypto.randomUUID();
 }
 
 async function loadState(ctx: Ctx) {
-  const [records, timer] = await Promise.all([ctx.store.listRecords(season1.id), ctx.store.getTimer()]);
-  return { records, state: computeGameState(records, timer, season1, ctx.instant) };
+  const [records, timer, tasks] = await Promise.all([
+    ctx.store.listRecords(season.id),
+    ctx.store.getTimer(),
+    ctx.store.getTasks(season.id),
+  ]);
+  return { records, state: computeGameState(records, timer, season, ctx.instant, { tasks }) };
 }
+
+const findBlock = (id: unknown) => (typeof id === 'string' ? (season.blocks.find((b) => b.id === id) ?? null) : null);
+const findCounter = (id: unknown) =>
+  typeof id === 'string' ? (season.counters.find((c) => c.id === id) ?? null) : null;
 
 // ---------- Acesso ----------
 
@@ -181,11 +215,13 @@ export async function logout(): Promise<void> {
 
 // ---------- Timer ----------
 
-export async function startTimer(courseSlug: string, pomodoro: boolean): Promise<ActionResult> {
+/** Liga o timer num bloco da rotina; no estudo, `courseSlug` diz o curso. */
+export async function startTimer(courseSlug: string, pomodoro: boolean, block = 'estudo'): Promise<ActionResult> {
   return withSession(async (ctx) => {
-    if (!findCourse(courseSlug)) return fail(MSG.course);
+    if (!findBlock(block)) return fail(MSG.block);
+    if (block === 'estudo' && !findCourse(courseSlug)) return fail(MSG.course);
     if (await ctx.store.getTimer()) return fail(MSG.timerExists);
-    await ctx.store.setTimer(timerStart(courseSlug, pomodoro === true, ctx.instant));
+    await ctx.store.setTimer(timerStart(courseSlug, pomodoro === true, ctx.instant, block));
     return { ok: true };
   });
 }
@@ -195,7 +231,7 @@ export async function pauseTimer(): Promise<ActionResult> {
     const t = await ctx.store.getTimer();
     if (!t) return fail(MSG.noTimer);
     if (t.runningSince === null) return { ok: true }; // já pausado
-    await ctx.store.setTimer(timerPause(t, ctx.instant, season1.timer));
+    await ctx.store.setTimer(timerPause(t, ctx.instant, season.timer));
     return { ok: true };
   });
 }
@@ -215,14 +251,16 @@ export async function confirmPresence(countGap: boolean): Promise<ActionResult> 
   return withSession(async (ctx) => {
     const t = await ctx.store.getTimer();
     if (!t) return fail(MSG.noTimer);
-    await ctx.store.setTimer(timerConfirmPresence(t, countGap === true, ctx.instant, season1.timer));
+    await ctx.store.setTimer(timerConfirmPresence(t, countGap === true, ctx.instant, season.timer));
     return { ok: true };
   });
 }
 
+/** Encerra a sessão. No estudo, `summary` (o que foi aprendido) é obrigatório. */
 export async function stopTimer(
   lessonIds: number[],
   countGap: boolean,
+  summary?: string,
 ): Promise<ActionResult<{ minutes: number }>> {
   return withSession(async (ctx) => {
     const t = await ctx.store.getTimer();
@@ -231,7 +269,12 @@ export async function stopTimer(
     const lessons = course ? cleanLessonIds(course, lessonIds) : [];
     if (lessons === null) return fail(MSG.lessons);
 
-    const record = timerStop(t, lessons, countGap === true, ctx.instant, season1, newId);
+    let record = timerStop(t, lessons, countGap === true, ctx.instant, season, newId);
+    if (record?.kind === 'study') {
+      const s = cleanSummary(summary);
+      if (!s.ok) return fail(s.error);
+      record = { ...record, data: { ...record.data, summary: s.text } };
+    }
     // Grava a sessão antes de apagar o timer: se a gravação falhar, nada se perde.
     if (record) await ctx.store.addRecord(record);
     await ctx.store.setTimer(null);
@@ -253,6 +296,7 @@ export async function addStudy(input: {
   courseSlug: string;
   minutes: number;
   lessonIds: number[];
+  summary: string;
 }): Promise<ActionResult> {
   return withSession(async (ctx) => {
     const { day, courseSlug, minutes, lessonIds } = input;
@@ -263,14 +307,65 @@ export async function addStudy(input: {
     if (!course) return fail(MSG.course);
     const lessons = cleanLessonIds(course, lessonIds);
     if (lessons === null) return fail(MSG.lessons);
+    const summary = cleanSummary(input.summary);
+    if (!summary.ok) return fail(summary.error);
 
     const record: StudyRecord = {
       id: newId(),
-      seasonId: season1.id,
+      seasonId: season.id,
       kind: 'study',
       day,
       createdAt: ctx.instant.toISOString(),
-      data: { courseSlug: course.slug, minutes, source: 'manual', lessonIds: lessons },
+      data: { courseSlug: course.slug, minutes, source: 'manual', lessonIds: lessons, summary: summary.text },
+    };
+    await ctx.store.addRecord(record);
+    return { ok: true };
+  });
+}
+
+/** Tempo num bloco que não é estudo de curso (prospecção, vagas, projeto, LinkedIn). */
+export async function addWork(input: { day: string; block: string; minutes: number; note?: string }): Promise<ActionResult> {
+  return withSession(async (ctx) => {
+    const { day, block, minutes, note } = input;
+    if (!isTodayOrYesterday(day, ctx)) return fail(MSG.dayRange);
+    const cfg = findBlock(block);
+    if (!cfg) return fail(MSG.block);
+    if (cfg.id === 'estudo') return fail(MSG.studyBlock);
+    const minErr = minutesError(minutes, 1);
+    if (minErr) return fail(minErr);
+    const cleanNote = typeof note === 'string' ? note.trim().slice(0, MAX_NOTE) : '';
+    const record: WorkRecord = {
+      id: newId(),
+      seasonId: season.id,
+      kind: 'work',
+      day,
+      createdAt: ctx.instant.toISOString(),
+      data: cleanNote
+        ? { block: cfg.id, minutes, source: 'manual', note: cleanNote }
+        : { block: cfg.id, minutes, source: 'manual' },
+    };
+    await ctx.store.addRecord(record);
+    return { ok: true };
+  });
+}
+
+/** Soma num contador (candidaturas, contatos, posts). */
+export async function addCount(input: { day: string; counter: string; amount: number }): Promise<ActionResult> {
+  return withSession(async (ctx) => {
+    const { day, counter, amount } = input;
+    if (!isTodayOrYesterday(day, ctx)) return fail(MSG.dayRange);
+    const cfg = findCounter(counter);
+    if (!cfg) return fail(MSG.counter);
+    if (typeof amount !== 'number' || !Number.isInteger(amount) || amount < 1 || amount > MAX_COUNT) {
+      return fail(MSG.amount);
+    }
+    const record: CountRecord = {
+      id: newId(),
+      seasonId: season.id,
+      kind: 'count',
+      day,
+      createdAt: ctx.instant.toISOString(),
+      data: { counter: cfg.id, amount },
     };
     await ctx.store.addRecord(record);
     return { ok: true };
@@ -283,7 +378,7 @@ export async function addGym(input: { day: string }): Promise<ActionResult> {
     if (!isTodayOrYesterday(day, ctx)) return fail(MSG.dayRange);
     const record: GymRecord = {
       id: newId(),
-      seasonId: season1.id,
+      seasonId: season.id,
       kind: 'gym',
       day,
       createdAt: ctx.instant.toISOString(),
@@ -303,15 +398,15 @@ export async function addCardio(input: {
     const { day, modality, minutes } = input;
     if (!isTodayOrYesterday(day, ctx)) return fail(MSG.dayRange);
     if (!MODALITIES.includes(modality)) return fail(MSG.modality);
-    const cardioErr = validateCardio(modality, minutes, season1);
+    const cardioErr = validateCardio(modality, minutes, season);
     if (cardioErr) return fail(cardioErr);
     const minErr = minutesError(minutes, 0);
     if (minErr) return fail(minErr);
 
-    const isSuper = isSuperCardio(modality, minutes, season1);
+    const isSuper = isSuperCardio(modality, minutes, season);
     const record: CardioRecord = {
       id: newId(),
-      seasonId: season1.id,
+      seasonId: season.id,
       kind: 'cardio',
       day,
       createdAt: ctx.instant.toISOString(),
@@ -327,7 +422,7 @@ export async function takeBreak(): Promise<ActionResult> {
   return withSession(async (ctx) => {
     const { records, state } = await loadState(ctx);
     const alreadyBreak =
-      season1.plannedBreaks.includes(ctx.today) ||
+      season.plannedBreaks.includes(ctx.today) ||
       records.some((r) => r.kind === 'break' && r.day === ctx.today) ||
       (state.todayInfo?.breakKind ?? null) !== null;
     if (alreadyBreak) return fail(MSG.alreadyBreak);
@@ -338,7 +433,7 @@ export async function takeBreak(): Promise<ActionResult> {
 
     const record: BreakRecord = {
       id: newId(),
-      seasonId: season1.id,
+      seasonId: season.id,
       kind: 'break',
       day: ctx.today,
       createdAt: ctx.instant.toISOString(),
@@ -355,16 +450,16 @@ export async function confirmDeposit(weekIndex: number): Promise<ActionResult> {
     if (typeof weekIndex !== 'number' || !Number.isInteger(weekIndex)) return fail(MSG.week);
     const week = state.weeks.find((w) => w.index === weekIndex);
     if (!week) return fail(MSG.week);
+    // depois do depósito, só a diferença (um chefe resgatado mais tarde, por exemplo)
+    const pending = state.fund.pending.find((p) => p.weekIndex === weekIndex);
     const deposited =
-      week.depositedCents !== null ||
-      records.some((r) => r.kind === 'deposit' && r.data.weekIndex === weekIndex);
-    if (deposited) return fail(MSG.depositDone);
+      week.depositedCents !== null || records.some((r) => r.kind === 'deposit' && r.data.weekIndex === weekIndex);
+    if (deposited && !pending) return fail(MSG.depositDone);
     if (!week.isClosed) return fail(MSG.weekOpen);
 
-    const pending = state.fund.pending.find((p) => p.weekIndex === weekIndex);
     const record: DepositRecord = {
       id: newId(),
-      seasonId: season1.id,
+      seasonId: season.id,
       kind: 'deposit',
       day: ctx.today,
       createdAt: ctx.instant.toISOString(),
@@ -385,10 +480,10 @@ export async function addClient(input: {
       return fail(MSG.contract);
     }
     const cleanNote = typeof note === 'string' ? note.trim().slice(0, MAX_NOTE) : '';
-    const bonusCents = clientBonusCents(contractCents, season1);
+    const bonusCents = clientBonusCents(contractCents, season);
     const record: ClientRecord = {
       id: newId(),
-      seasonId: season1.id,
+      seasonId: season.id,
       kind: 'client',
       day: ctx.today,
       createdAt: ctx.instant.toISOString(),
@@ -399,10 +494,91 @@ export async function addClient(input: {
   });
 }
 
+/** "Concluí" do evento de resgate de hoje, para desafios que não dá para medir (prospecção, leitura). */
+export async function completeRescue(): Promise<ActionResult> {
+  return withSession(async (ctx) => {
+    const { state } = await loadState(ctx);
+    const rescue = state.rescue;
+    if (!rescue || rescue.day !== ctx.today || rescue.state === 'upcoming' || rescue.state === 'missed') {
+      return fail(MSG.noRescue);
+    }
+    if (rescue.kind !== 'manual') return fail(MSG.rescueAuto);
+    if (rescue.state === 'done') return fail(MSG.rescueDone);
+
+    const record: RescueRecord = {
+      id: newId(),
+      seasonId: season.id,
+      kind: 'rescue',
+      day: ctx.today,
+      createdAt: ctx.instant.toISOString(),
+      data: { weekIndex: rescue.weekIndex },
+    };
+    await ctx.store.addRecord(record);
+    return { ok: true };
+  });
+}
+
+// ---------- Tarefas avulsas ----------
+
+function cleanTitle(title: unknown): string | null {
+  if (typeof title !== 'string') return null;
+  const t = title.trim().replace(/\s+/g, ' ');
+  return t && t.length <= MAX_TASK ? t : null;
+}
+
+export async function addTask(input: { title: string; block?: string | null }): Promise<ActionResult> {
+  return withSession(async (ctx) => {
+    const title = cleanTitle(input.title);
+    if (!title) return fail(MSG.taskTitle);
+    const block = input.block ? findBlock(input.block) : null;
+    if (input.block && !block) return fail(MSG.block);
+    const tasks = await ctx.store.getTasks(season.id);
+    const task: Task = {
+      id: newId(),
+      title,
+      block: block?.id ?? null,
+      createdAt: ctx.instant.toISOString(),
+      doneDay: null,
+      doneAt: null,
+    };
+    await ctx.store.setTasks(season.id, [...tasks, task]);
+    return { ok: true };
+  });
+}
+
+/** Conclui (no dia do jogo de agora) ou reabre uma tarefa. */
+export async function setTaskDone(id: string, done: boolean): Promise<ActionResult> {
+  return withSession(async (ctx) => {
+    const tasks = await ctx.store.getTasks(season.id);
+    if (!tasks.some((t) => t.id === id)) return fail(MSG.taskNotFound);
+    const next = tasks.map((t) =>
+      t.id !== id
+        ? t
+        : done
+          ? { ...t, doneDay: t.doneDay ?? ctx.today, doneAt: t.doneAt ?? ctx.instant.toISOString() }
+          : { ...t, doneDay: null, doneAt: null },
+    );
+    await ctx.store.setTasks(season.id, next);
+    return { ok: true };
+  });
+}
+
+export async function deleteTask(id: string): Promise<ActionResult> {
+  return withSession(async (ctx) => {
+    const tasks = await ctx.store.getTasks(season.id);
+    if (!tasks.some((t) => t.id === id)) return fail(MSG.taskNotFound);
+    await ctx.store.setTasks(
+      season.id,
+      tasks.filter((t) => t.id !== id),
+    );
+    return { ok: true };
+  });
+}
+
 export async function deleteRecord(id: string): Promise<ActionResult> {
   return withSession(async (ctx) => {
     if (typeof id !== 'string' || !id) return fail(MSG.recordNotFound);
-    const records = await ctx.store.listRecords(season1.id);
+    const records = await ctx.store.listRecords(season.id);
     const record = records.find((r) => r.id === id);
     if (!record) return fail(MSG.recordNotFound);
     if (!UNDOABLE_KINDS.has(record.kind)) return fail(MSG.undoKind);

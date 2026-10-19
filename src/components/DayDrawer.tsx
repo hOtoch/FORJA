@@ -4,11 +4,12 @@
 
 import { useState, useTransition } from 'react';
 import { addGym, deleteRecord } from '@/app/actions';
+import { season } from '@/config/season';
 import { CARDIO_LABELS, formatBRL } from '@/lib/cardio';
 import { addDays, longDate } from '@/lib/time';
 import type { DayInfo, ForjaRecord, GameState } from '@/lib/types';
 import { Dialog, runAction, useToast } from './feedback';
-import { courseBySlug, fmtInt, heatReason, lessonTitleById, timeHM } from './format';
+import { blockName, counterAmount, courseBySlug, fmtInt, heatReason, hoursLabel, lessonTitleById, timeHM } from './format';
 
 const SWATCH: Record<string, string> = {
   future: 'var(--heat-future)',
@@ -52,7 +53,8 @@ function DayDrawerContent({ state, day, records, onRegisterStudy, onRegisterCard
 
   const editable = day.date === state.today || day.date === addDays(state.today, -1);
   const dayRecords = (records ?? []).filter((r) => r.day === day.date);
-  const studies = dayRecords.filter((r) => r.kind === 'study');
+  const studies = dayRecords.filter((r) => r.kind === 'study' || r.kind === 'work');
+  const counts = dayRecords.filter((r) => r.kind === 'count');
   const moves = dayRecords.filter((r) => r.kind === 'gym' || r.kind === 'cardio');
   const others = dayRecords.filter((r) => r.kind === 'client' || r.kind === 'deposit');
   const swatchKey = day.isFuture || day.heat === null ? 'future' : String(day.heat);
@@ -112,13 +114,47 @@ function DayDrawerContent({ state, day, records, onRegisterStudy, onRegisterCard
 
       {!day.isFuture ? (
         <section>
-          <h3 className="text-body font-bold">Estudo</h3>
+          <h3 className="text-body font-bold">Rotina</h3>
           <p className="mt-1 text-body num">
-            {day.studyMinutes > 0 ? `${day.studyMinutes} min no dia` : 'Nenhum minuto de estudo.'}
+            {day.workMinutes > 0
+              ? `${hoursLabel(day.workMinutes)} de foco${day.goalMinutes > 0 ? `, meta de ${hoursLabel(day.goalMinutes)}` : ''}`
+              : 'Nenhum minuto registrado.'}
           </p>
+          <ul className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-small num">
+            {day.blocks
+              .filter((b) => b.goal > 0 || b.minutes > 0)
+              .map((b) => (
+                <li key={b.id} className="flex justify-between gap-2">
+                  <span>{blockName(b.id)}</span>
+                  <span className={b.met ? 'font-bold' : 'text-muted'}>
+                    {b.minutes}
+                    {b.goal > 0 ? ` de ${b.goal}` : ''} min{b.met && b.goal > 0 ? ' ✓' : ''}
+                  </span>
+                </li>
+              ))}
+          </ul>
           {studies.length > 0 ? (
-            <ul className="mt-2 space-y-2">
+            <ul className="mt-3 space-y-2">
               {studies.map((r) => {
+                if (r.kind === 'work') {
+                  const w = r.data;
+                  return (
+                    <li key={r.id} className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 text-body">
+                        <p className="num">
+                          {w.source === 'timer' && w.startedAt && w.endedAt
+                            ? `${timeHM(w.startedAt)} às ${timeHM(w.endedAt)}, ${w.minutes} min`
+                            : `${w.minutes} min, registro manual`}
+                        </p>
+                        <p className="text-small text-muted">
+                          {blockName(w.block)}
+                          {w.note ? `. ${w.note}` : ''}
+                        </p>
+                      </div>
+                      {undoButton(r.id)}
+                    </li>
+                  );
+                }
                 if (r.kind !== 'study') return null;
                 const d = r.data;
                 const course = courseBySlug(state, d.courseSlug);
@@ -137,6 +173,9 @@ function DayDrawerContent({ state, day, records, onRegisterStudy, onRegisterCard
                           ? `. ${lessons.length === 1 ? 'Aula' : 'Aulas'}: ${lessons.join('; ')}`
                           : ''}
                       </p>
+                      {d.summary ? (
+                        <p className="mt-1 whitespace-pre-line border-l-2 border-line pl-2 text-small">{d.summary}</p>
+                      ) : null}
                     </div>
                     {undoButton(r.id)}
                   </li>
@@ -144,6 +183,25 @@ function DayDrawerContent({ state, day, records, onRegisterStudy, onRegisterCard
               })}
             </ul>
           ) : null}
+        </section>
+      ) : null}
+
+      {counts.length > 0 ? (
+        <section>
+          <h3 className="text-body font-bold">Contadores</h3>
+          <ul className="mt-2 space-y-1.5">
+            {counts.map((r) =>
+              r.kind === 'count' ? (
+                <li key={r.id} className="flex items-center justify-between gap-3 text-body num">
+                  <span>
+                    {season.counters.find((c) => c.id === r.data.counter)?.name ?? r.data.counter}: +
+                    {counterAmount(r.data.counter, r.data.amount)}
+                  </span>
+                  {undoButton(r.id)}
+                </li>
+              ) : null,
+            )}
+          </ul>
         </section>
       ) : null}
 
@@ -206,7 +264,13 @@ function DayDrawerContent({ state, day, records, onRegisterStudy, onRegisterCard
         <section>
           <h3 className="text-body font-bold">O dia rendeu</h3>
           <p className="mt-1 text-body num">
-            {fmtInt(day.xp)} XP e <span className="text-money font-bold">{formatBRL(day.fundCents)}</span> no Fundo
+            {fmtInt(day.xp)} XP
+            {season.features.fund ? (
+              <>
+                {' '}
+                e <span className="text-money font-bold">{formatBRL(day.fundCents)}</span> no Fundo
+              </>
+            ) : null}
           </p>
         </section>
       ) : null}
@@ -216,7 +280,7 @@ function DayDrawerContent({ state, day, records, onRegisterStudy, onRegisterCard
           {showRegister ? (
             <div className="flex flex-wrap gap-2">
               <button type="button" className="btn btn-outline" onClick={() => onRegisterStudy(day.date)}>
-                Registrar estudo
+                Registrar tempo
               </button>
               <button type="button" className="btn btn-outline" disabled={pending} onClick={gym}>
                 Marcar treino

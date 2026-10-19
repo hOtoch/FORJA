@@ -37,14 +37,21 @@ describe('Fundo Réveillon', () => {
   });
 
   it('pendente lista só semanas fechadas, sem depósito e com valor', () => {
-    const records = [...perfectWeek(1), ...perfectWeek(3), study('2026-10-26', 60), deposit('2026-10-12', 1, 1000)];
+    const week1 = game(perfectWeek(1), at('2026-10-27')).weeks[0].fundCents;
+    const records = [...perfectWeek(1), ...perfectWeek(3), study('2026-10-26', 60), deposit('2026-10-12', 1, week1)];
     const g = game(records, at('2026-10-27'));
     expect(g.fund.pending.map((p) => p.weekIndex)).toEqual([3]);
     // a semana 4 em andamento já entra no ganho
     expect(g.fund.earnedCents).toBe(g.weeks[0].fundCents + g.weeks[2].fundCents + 500);
   });
 
-  it('excedentes, folgas e dias de escudo não rendem', () => {
+  it('depósito menor que o ganho deixa só a diferença pendente', () => {
+    const records = [...perfectWeek(1), deposit('2026-10-12', 1, 1000)];
+    const g = game(records, at('2026-10-27'));
+    expect(g.fund.pending).toEqual([{ weekIndex: 1, amountCents: g.weeks[0].fundCents - 1000 }]);
+  });
+
+  it('excedentes e folgas não rendem; o estudo da folga compensa o dia do escudo', () => {
     const records = [
       ...studyRange('2026-10-05', '2026-10-07'),
       study('2026-10-10', 120), // folga planejada
@@ -53,10 +60,11 @@ describe('Fundo Réveillon', () => {
     ];
     const g = game(records, at('2026-10-12'));
     expect(dayOf(g, '2026-10-08').shieldUsed).toBe(true);
-    // 4 dias cumpridos × R$ 5 + 4 treinos (o 5º e o 6º são excedentes) × R$ 10
-    expect(g.weeks[0].fundCents).toBe(4 * 500 + 4 * 1000);
+    // as 2h da folga compensam o dia 08: 5 dias × R$ 5 + 4 treinos (o 5º e o 6º são excedentes) × R$ 10
+    expect(dayOf(g, '2026-10-08').dayRedeemed).toBe(true);
+    expect(g.weeks[0].fundCents).toBe(5 * 500 + 4 * 1000);
     expect(dayOf(g, '2026-10-10').fundCents).toBe(0);
-    expect(dayOf(g, '2026-10-08').fundCents).toBe(1000);
+    expect(dayOf(g, '2026-10-08').fundCents).toBe(1500);
   });
 
   it('cliente fechado soma 5% do contrato ao Fundo da semana', () => {

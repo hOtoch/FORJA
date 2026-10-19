@@ -63,7 +63,7 @@ describe('folgas de reserva', () => {
       reserveBreak('2026-10-22'),
     ];
     const g = game(records, at('2026-10-26'));
-    expect(g.weeks[2]).toMatchObject({ studyDaysRequired: 6, studyDaysMet: 6, shieldDays: 0, bossDefeated: true });
+    expect(g.weeks[2]).toMatchObject({ daysRequired: 6, daysMet: 6, shieldDays: 0, bossDefeated: true });
     expect(g.weeks[2].fundCents).toBe(6 * 500 + 4000 + 2500 + 3000);
   });
 
