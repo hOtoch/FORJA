@@ -323,7 +323,7 @@ export async function addStudy(input: {
   });
 }
 
-/** Tempo num bloco que não é estudo de curso (prospecção, vagas, projeto, LinkedIn). */
+/** Tempo num bloco que não é estudo de curso (prospecção, vagas, projeto). */
 export async function addWork(input: { day: string; block: string; minutes: number; note?: string }): Promise<ActionResult> {
   return withSession(async (ctx) => {
     const { day, block, minutes, note } = input;

@@ -13,8 +13,9 @@ function sundays(from: string, to: string): string[] {
 }
 
 /**
- * Temporada 2: Operação Recomeço. Rotina de 8h nos dias úteis (prospecção, vagas, estudo,
- * projeto/SaaS e LinkedIn), sábado mais leve e domingo de folga, até a viagem.
+ * Temporada 2: Operação Recomeço. Rotina de 6h30 nos dias úteis (prospecção, vagas, estudo e
+ * projeto/SaaS), sábado mais leve e domingo de folga, até a viagem. O LinkedIn não tem bloco de
+ * tempo: conta só pelos posts da semana (contador).
  * O dia só conta como cumprido quando todos os blocos batem a meta (com compensação na semana).
  */
 export const season2: SeasonConfig = {
@@ -30,8 +31,7 @@ export const season2: SeasonConfig = {
     { id: 'prospeccao', name: 'Prospecção', phrase: 'prospecção', icon: 'bolsa', minutes: [120, 120, 120, 120, 120, 0, 0], attr: 'influencia' },
     { id: 'vagas', name: 'Vagas', phrase: 'vagas', icon: 'icone-escudo', minutes: [90, 90, 90, 90, 90, 0, 0], attr: 'influencia' },
     { id: 'estudo', name: 'Estudo', phrase: 'estudo', icon: 'icone-livro', minutes: [120, 120, 120, 120, 120, 0, 0], attr: 'inteligencia' },
-    { id: 'projeto', name: 'Projeto/SaaS', phrase: 'projeto', icon: 'icone-ampulheta', minutes: [120, 120, 120, 120, 120, 180, 0], attr: 'inteligencia' },
-    { id: 'linkedin', name: 'LinkedIn', phrase: 'LinkedIn', icon: 'icone-chama', minutes: [30, 30, 30, 30, 30, 30, 0], attr: 'influencia' },
+    { id: 'projeto', name: 'Projeto/SaaS', phrase: 'projeto', icon: 'icone-ampulheta', minutes: [60, 60, 60, 60, 60, 120, 0], attr: 'inteligencia' },
   ],
   counters: [
     { id: 'contatos', name: 'Contatos de prospecção', unit: ['contato', 'contatos'], weekTarget: 100, steps: [1, 5], xp: 2, attr: 'influencia' },

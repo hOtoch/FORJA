@@ -16,13 +16,12 @@ function fullWeekday(day: string, extra: Partial<Record<string, number>> = {}): 
     work(day, 'prospeccao', m('prospeccao', 120)),
     work(day, 'vagas', m('vagas', 90)),
     { ...study(day, m('estudo', 120)), seasonId: 's2' },
-    work(day, 'projeto', m('projeto', 120)),
-    work(day, 'linkedin', m('linkedin', 30)),
+    work(day, 'projeto', m('projeto', 60)),
   ];
 }
 
 function fullSaturday(day: string): ForjaRecord[] {
-  return [work(day, 'projeto', 180), work(day, 'linkedin', 30)];
+  return [work(day, 'projeto', 120)];
 }
 
 /** Treinos, cardios e contadores que vencem a semana 1. */
@@ -60,17 +59,19 @@ describe('temporada 2: rotina por blocos', () => {
     expect(g.weeks[0].daysRequired).toBe(6);
   });
 
-  it('dia útil pede 8h somando os 5 blocos; sábado pede 3h30', () => {
+  it('dia útil pede 6h30 somando os 4 blocos; sábado pede 2h; LinkedIn não tem bloco', () => {
     const g = game([], at(MON), season2);
-    expect(dayOf(g, MON).goalMinutes).toBe(480);
-    expect(dayOf(g, SAT).goalMinutes).toBe(210);
+    expect(dayOf(g, MON).goalMinutes).toBe(390);
+    expect(dayOf(g, SAT).goalMinutes).toBe(120);
+    expect(season2.blocks.map((b) => b.id)).not.toContain('linkedin');
+    expect(season2.counters.find((c) => c.id === 'posts')?.weekTarget).toBe(3);
   });
 
   it('o dia só está cumprido com todos os blocos na meta', () => {
-    const almost = fullWeekday(MON).filter((r) => !(r.kind === 'work' && r.data.block === 'linkedin'));
+    const almost = fullWeekday(MON).filter((r) => !(r.kind === 'work' && r.data.block === 'projeto'));
     const g = game(almost, at(MON, '22:00'), season2);
-    expect(dayOf(g, MON)).toMatchObject({ dayMet: false, workMinutes: 450, heat: 1 });
-    expect(g.status.reasons).toContain('Faltam 30 min de LinkedIn hoje.');
+    expect(dayOf(g, MON)).toMatchObject({ dayMet: false, workMinutes: 330, heat: 1 });
+    expect(g.status.reasons).toContain('Faltam 60 min de projeto hoje.');
     const ok = game(fullWeekday(MON), at(MON, '22:00'), season2);
     expect(dayOf(ok, MON)).toMatchObject({ dayMet: true, heat: 2 });
   });
@@ -107,10 +108,10 @@ describe('temporada 2: rotina por blocos', () => {
     expect(g.weeks[9].counters.map((c) => c.target)).toEqual([43, 9, 2]);
   });
 
-  it('XP: blocos de prospecção, vagas e LinkedIn vão para Influência; contadores também', () => {
+  it('XP: blocos de prospecção e vagas vão para Influência; contadores também', () => {
     const g = game([...fullWeekday(MON), count(MON, 'candidaturas', 2)], at(MON, '22:00'), season2);
-    expect(g.xp.byAttr.inteligencia).toBe(240);
-    expect(g.xp.byAttr.influencia).toBe(120 + 90 + 30 + 2 * 10);
+    expect(g.xp.byAttr.inteligencia).toBe(120 + 60);
+    expect(g.xp.byAttr.influencia).toBe(120 + 90 + 2 * 10);
   });
 
   it('o teto diário de XP soma todos os blocos', () => {

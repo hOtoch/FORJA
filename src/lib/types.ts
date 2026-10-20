@@ -30,7 +30,7 @@ export type StudyRecord = BaseRecord<
   }
 >;
 
-/** Tempo num bloco da rotina que não é estudo de curso (prospecção, vagas, projeto, LinkedIn). */
+/** Tempo num bloco da rotina que não é estudo de curso (prospecção, vagas, projeto). */
 export type WorkRecord = BaseRecord<
   'work',
   {
