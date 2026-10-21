@@ -13,9 +13,9 @@ function sundays(from: string, to: string): string[] {
 }
 
 /**
- * Temporada 2: Operação Recomeço. Rotina de 6h30 nos dias úteis (prospecção, vagas, estudo e
- * projeto/SaaS), sábado mais leve e domingo de folga, até a viagem. O LinkedIn não tem bloco de
- * tempo: conta só pelos posts da semana (contador).
+ * Temporada 2: Operação Recomeço. Metas diárias de 1h de estudo e 1h de projeto/SaaS (segunda a
+ * sábado, domingo de folga), até a viagem. Prospecção, vagas e LinkedIn não têm bloco de tempo:
+ * contam pelas metas da semana (contatos, candidaturas e posts), junto com treinos e cardios.
  * O dia só conta como cumprido quando todos os blocos batem a meta (com compensação na semana).
  */
 export const season2: SeasonConfig = {
@@ -28,26 +28,25 @@ export const season2: SeasonConfig = {
   reserveBreaks: 2,
   // minutos de segunda a domingo
   blocks: [
-    { id: 'prospeccao', name: 'Prospecção', phrase: 'prospecção', icon: 'bolsa', minutes: [120, 120, 120, 120, 120, 0, 0], attr: 'influencia' },
-    { id: 'vagas', name: 'Vagas', phrase: 'vagas', icon: 'icone-escudo', minutes: [90, 90, 90, 90, 90, 0, 0], attr: 'influencia' },
-    { id: 'estudo', name: 'Estudo', phrase: 'estudo', icon: 'icone-livro', minutes: [120, 120, 120, 120, 120, 0, 0], attr: 'inteligencia' },
-    { id: 'projeto', name: 'Projeto/SaaS', phrase: 'projeto', icon: 'icone-ampulheta', minutes: [60, 60, 60, 60, 60, 120, 0], attr: 'inteligencia' },
+    { id: 'estudo', name: 'Estudo', phrase: 'estudo', icon: 'icone-livro', minutes: [60, 60, 60, 60, 60, 60, 0], attr: 'inteligencia' },
+    { id: 'projeto', name: 'Projeto/SaaS', phrase: 'projeto', icon: 'icone-ampulheta', minutes: [60, 60, 60, 60, 60, 60, 0], attr: 'inteligencia' },
   ],
+  // metas da semana (o chefe pede todas, além de 4 treinos e 5 cardios com 1 supercardio)
   counters: [
-    { id: 'contatos', name: 'Contatos de prospecção', unit: ['contato', 'contatos'], weekTarget: 100, steps: [1, 5], xp: 2, attr: 'influencia' },
+    { id: 'contatos', name: 'Contatos de prospecção', unit: ['contato', 'contatos'], weekTarget: 20, steps: [1, 5], xp: 10, attr: 'influencia' },
     { id: 'candidaturas', name: 'Candidaturas', unit: ['candidatura', 'candidaturas'], weekTarget: 20, steps: [1], xp: 10, attr: 'influencia' },
     { id: 'posts', name: 'Posts no LinkedIn', unit: ['post', 'posts'], weekTarget: 3, steps: [1], xp: 40, attr: 'influencia' },
   ],
   features: { fund: false, chests: false },
   xp: {
     ...season1.xp,
-    // um dia cheio rende ~500 XP; o teto deixa 2h a mais valerem
-    workDailyCap: 600,
+    // um dia cumprido rende ~120 XP de blocos; o teto deixa 2h a mais valerem
+    workDailyCap: 240,
     boss: 150,
     task: 25,
   },
-  // ~600 XP por dia: nível 12 perto do fim da temporada
-  levelXp: (n) => 250 * n * (n + 1),
+  // ~300 XP por dia (blocos, contadores, treino e cardio): nível 12 a 13 perto do fim da temporada
+  levelXp: (n) => 100 * n * (n + 1),
   fund: {
     studyDayCents: 0,
     gymCents: 0,
@@ -93,12 +92,12 @@ export const season2: SeasonConfig = {
       {
         id: 'contatos-extra',
         title: 'Prospectar {n} contatos',
-        description: 'Registre {n} contatos de prospecção no dia do evento (o normal é uns 20).',
+        description: 'Registre {n} contatos de prospecção no dia do evento (o normal é uns 4).',
         kind: 'counter',
         counter: 'contatos',
-        base: 35, // 35 → 60 contatos
-        step: 3,
-        max: 60,
+        base: 10, // 10 → 30 contatos
+        step: 2,
+        max: 30,
       },
       {
         id: 'candidaturas-extra',

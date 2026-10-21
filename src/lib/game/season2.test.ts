@@ -9,19 +9,13 @@ import { at, cardio, count, dayOf, game, gym, study, superCardio, task, work } f
 const MON = '2026-10-19';
 const SAT = '2026-10-24';
 
-/** Um dia útil cheio: todos os blocos na meta. */
+/** Um dia cheio (segunda a sábado): 1h de estudo e 1h de projeto. */
 function fullWeekday(day: string, extra: Partial<Record<string, number>> = {}): ForjaRecord[] {
   const m = (id: string, base: number) => base + (extra[id] ?? 0);
-  return [
-    work(day, 'prospeccao', m('prospeccao', 120)),
-    work(day, 'vagas', m('vagas', 90)),
-    { ...study(day, m('estudo', 120)), seasonId: 's2' },
-    work(day, 'projeto', m('projeto', 60)),
-  ];
-}
-
-function fullSaturday(day: string): ForjaRecord[] {
-  return [work(day, 'projeto', 120)];
+  const out: ForjaRecord[] = [];
+  if (m('estudo', 60) > 0) out.push({ ...study(day, m('estudo', 60)), seasonId: 's2' });
+  if (m('projeto', 60) > 0) out.push(work(day, 'projeto', m('projeto', 60)));
+  return out;
 }
 
 /** Treinos, cardios e contadores que vencem a semana 1. */
@@ -36,7 +30,7 @@ function week1Extras(): ForjaRecord[] {
     cardio('2026-10-21'),
     cardio('2026-10-22'),
     superCardio('2026-10-23'),
-    count('2026-10-19', 'contatos', 100),
+    count('2026-10-19', 'contatos', 20),
     count('2026-10-20', 'candidaturas', 20),
     count('2026-10-21', 'posts', 3),
   ];
@@ -44,8 +38,8 @@ function week1Extras(): ForjaRecord[] {
 
 function perfectWeek1(): ForjaRecord[] {
   const out: ForjaRecord[] = [];
-  for (let d = MON; d < SAT; d = addDays(d, 1)) out.push(...fullWeekday(d));
-  out.push(...fullSaturday(SAT), ...week1Extras());
+  for (let d = MON; d <= SAT; d = addDays(d, 1)) out.push(...fullWeekday(d));
+  out.push(...week1Extras());
   return out;
 }
 
@@ -59,34 +53,40 @@ describe('temporada 2: rotina por blocos', () => {
     expect(g.weeks[0].daysRequired).toBe(6);
   });
 
-  it('dia útil pede 6h30 somando os 4 blocos; sábado pede 2h; LinkedIn não tem bloco', () => {
+  it('segunda a sábado pedem 1h de estudo e 1h de projeto; o resto é meta da semana', () => {
     const g = game([], at(MON), season2);
-    expect(dayOf(g, MON).goalMinutes).toBe(390);
+    expect(dayOf(g, MON).goalMinutes).toBe(120);
     expect(dayOf(g, SAT).goalMinutes).toBe(120);
-    expect(season2.blocks.map((b) => b.id)).not.toContain('linkedin');
-    expect(season2.counters.find((c) => c.id === 'posts')?.weekTarget).toBe(3);
+    expect(season2.blocks.map((b) => b.id)).toEqual(['estudo', 'projeto']);
+    expect(season2.counters.map((c) => [c.id, c.weekTarget])).toEqual([
+      ['contatos', 20],
+      ['candidaturas', 20],
+      ['posts', 3],
+    ]);
+    expect(season2.goals).toMatchObject({ gymPerWeek: 4, cardioPerWeek: 5 });
+    expect(g.weeks[0]).toMatchObject({ gymTarget: 4, cardioTarget: 5, superRequired: true });
   });
 
   it('o dia só está cumprido com todos os blocos na meta', () => {
     const almost = fullWeekday(MON).filter((r) => !(r.kind === 'work' && r.data.block === 'projeto'));
     const g = game(almost, at(MON, '22:00'), season2);
-    expect(dayOf(g, MON)).toMatchObject({ dayMet: false, workMinutes: 330, heat: 1 });
+    expect(dayOf(g, MON)).toMatchObject({ dayMet: false, workMinutes: 60, heat: 1 });
     expect(g.status.reasons).toContain('Faltam 60 min de projeto hoje.');
     const ok = game(fullWeekday(MON), at(MON, '22:00'), season2);
     expect(dayOf(ok, MON)).toMatchObject({ dayMet: true, heat: 2 });
   });
 
-  it('compensa bloco a bloco: estudo a mais não cobre vagas', () => {
+  it('compensa bloco a bloco: estudo a mais não cobre projeto', () => {
     const tue = addDays(MON, 1);
     const records = [
-      ...fullWeekday(MON, { vagas: -90 }), // segunda sem vagas
+      ...fullWeekday(MON, { projeto: -60 }), // segunda sem projeto
       ...fullWeekday(tue, { estudo: 90 }), // terça com 90 min a mais de estudo
     ];
     const g = game(records, at(addDays(MON, 2)), season2);
     expect(dayOf(g, MON).dayRedeemed).toBe(false);
-    expect(g.weeks[0].owedByBlock).toEqual({ vagas: 90 });
+    expect(g.weeks[0].owedByBlock).toEqual({ projeto: 60 });
 
-    const fixed = game([...records, work(addDays(MON, 2), 'vagas', 180)], at(addDays(MON, 2), '22:00'), season2);
+    const fixed = game([...records, work(addDays(MON, 2), 'projeto', 120)], at(addDays(MON, 2), '22:00'), season2);
     expect(dayOf(fixed, MON).dayRedeemed).toBe(true);
     expect(fixed.weeks[0].owedByBlock).toEqual({});
   });
@@ -95,7 +95,7 @@ describe('temporada 2: rotina por blocos', () => {
     const g = game(perfectWeek1(), at('2026-10-26'), season2);
     expect(g.weeks[0]).toMatchObject({ daysMet: 6, bossDefeated: true });
     expect(g.weeks[0].counters).toEqual([
-      { id: 'contatos', count: 100, target: 100 },
+      { id: 'contatos', count: 20, target: 20 },
       { id: 'candidaturas', count: 20, target: 20 },
       { id: 'posts', count: 3, target: 3 },
     ]);
@@ -105,13 +105,13 @@ describe('temporada 2: rotina por blocos', () => {
 
   it('a semana final, parcial, pede a parte proporcional dos contadores', () => {
     const g = game([], at('2026-12-21'), season2);
-    expect(g.weeks[9].counters.map((c) => c.target)).toEqual([43, 9, 2]);
+    expect(g.weeks[9].counters.map((c) => c.target)).toEqual([9, 9, 2]);
   });
 
-  it('XP: blocos de prospecção e vagas vão para Influência; contadores também', () => {
-    const g = game([...fullWeekday(MON), count(MON, 'candidaturas', 2)], at(MON, '22:00'), season2);
-    expect(g.xp.byAttr.inteligencia).toBe(120 + 60);
-    expect(g.xp.byAttr.influencia).toBe(120 + 90 + 2 * 10);
+  it('XP: estudo e projeto vão para Inteligência; os contadores, para Influência', () => {
+    const g = game([...fullWeekday(MON), count(MON, 'candidaturas', 2), count(MON, 'contatos', 5)], at(MON, '22:00'), season2);
+    expect(g.xp.byAttr.inteligencia).toBe(60 + 60);
+    expect(g.xp.byAttr.influencia).toBe(2 * 10 + 5 * 10);
   });
 
   it('o teto diário de XP soma todos os blocos', () => {
