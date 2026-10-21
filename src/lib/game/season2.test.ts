@@ -9,11 +9,11 @@ import { at, cardio, count, dayOf, game, gym, study, superCardio, task, work } f
 const MON = '2026-10-19';
 const SAT = '2026-10-24';
 
-/** Um dia cheio (segunda a sábado): 1h de estudo e 1h de projeto. */
+/** Um dia cheio (segunda a sábado): 2h de estudo e 1h de projeto. */
 function fullWeekday(day: string, extra: Partial<Record<string, number>> = {}): ForjaRecord[] {
   const m = (id: string, base: number) => base + (extra[id] ?? 0);
   const out: ForjaRecord[] = [];
-  if (m('estudo', 60) > 0) out.push({ ...study(day, m('estudo', 60)), seasonId: 's2' });
+  if (m('estudo', 120) > 0) out.push({ ...study(day, m('estudo', 120)), seasonId: 's2' });
   if (m('projeto', 60) > 0) out.push(work(day, 'projeto', m('projeto', 60)));
   return out;
 }
@@ -53,10 +53,10 @@ describe('temporada 2: rotina por blocos', () => {
     expect(g.weeks[0].daysRequired).toBe(6);
   });
 
-  it('segunda a sábado pedem 1h de estudo e 1h de projeto; o resto é meta da semana', () => {
+  it('segunda a sábado pedem 2h de estudo e 1h de projeto; o resto é meta da semana', () => {
     const g = game([], at(MON), season2);
-    expect(dayOf(g, MON).goalMinutes).toBe(120);
-    expect(dayOf(g, SAT).goalMinutes).toBe(120);
+    expect(dayOf(g, MON).goalMinutes).toBe(180);
+    expect(dayOf(g, SAT).goalMinutes).toBe(180);
     expect(season2.blocks.map((b) => b.id)).toEqual(['estudo', 'projeto']);
     expect(season2.counters.map((c) => [c.id, c.weekTarget])).toEqual([
       ['contatos', 20],
@@ -70,7 +70,7 @@ describe('temporada 2: rotina por blocos', () => {
   it('o dia só está cumprido com todos os blocos na meta', () => {
     const almost = fullWeekday(MON).filter((r) => !(r.kind === 'work' && r.data.block === 'projeto'));
     const g = game(almost, at(MON, '22:00'), season2);
-    expect(dayOf(g, MON)).toMatchObject({ dayMet: false, workMinutes: 60, heat: 1 });
+    expect(dayOf(g, MON)).toMatchObject({ dayMet: false, workMinutes: 120, heat: 1 });
     expect(g.status.reasons).toContain('Faltam 60 min de projeto hoje.');
     const ok = game(fullWeekday(MON), at(MON, '22:00'), season2);
     expect(dayOf(ok, MON)).toMatchObject({ dayMet: true, heat: 2 });
@@ -110,7 +110,7 @@ describe('temporada 2: rotina por blocos', () => {
 
   it('XP: estudo e projeto vão para Inteligência; os contadores, para Influência', () => {
     const g = game([...fullWeekday(MON), count(MON, 'candidaturas', 2), count(MON, 'contatos', 5)], at(MON, '22:00'), season2);
-    expect(g.xp.byAttr.inteligencia).toBe(60 + 60);
+    expect(g.xp.byAttr.inteligencia).toBe(120 + 60);
     expect(g.xp.byAttr.influencia).toBe(2 * 10 + 5 * 10);
   });
 
