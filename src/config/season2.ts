@@ -13,7 +13,7 @@ function sundays(from: string, to: string): string[] {
 }
 
 /**
- * Temporada 2: Operação Recomeço. Metas diárias de 1h de estudo e 1h de projeto/SaaS (segunda a
+ * Temporada 2: Operação Recomeço. Metas diárias de 2h de estudo e 1h de projeto/SaaS (segunda a
  * sábado, domingo de folga), até a viagem. Prospecção, vagas e LinkedIn não têm bloco de tempo:
  * contam pelas metas da semana (contatos, candidaturas e posts), junto com treinos e cardios.
  * O dia só conta como cumprido quando todos os blocos batem a meta (com compensação na semana).
@@ -28,7 +28,7 @@ export const season2: SeasonConfig = {
   reserveBreaks: 2,
   // minutos de segunda a domingo
   blocks: [
-    { id: 'estudo', name: 'Estudo', phrase: 'estudo', icon: 'icone-livro', minutes: [60, 60, 60, 60, 60, 60, 0], attr: 'inteligencia' },
+    { id: 'estudo', name: 'Estudo', phrase: 'estudo', icon: 'icone-livro', minutes: [120, 120, 120, 120, 120, 120, 0], attr: 'inteligencia' },
     { id: 'projeto', name: 'Projeto/SaaS', phrase: 'projeto', icon: 'icone-ampulheta', minutes: [60, 60, 60, 60, 60, 60, 0], attr: 'inteligencia' },
   ],
   // metas da semana (o chefe pede todas, além de 4 treinos e 5 cardios com 1 supercardio)
@@ -40,8 +40,8 @@ export const season2: SeasonConfig = {
   features: { fund: false, chests: false },
   xp: {
     ...season1.xp,
-    // um dia cumprido rende ~120 XP de blocos; o teto deixa 2h a mais valerem
-    workDailyCap: 240,
+    // um dia cumprido rende ~180 XP de blocos; o teto deixa 2h a mais valerem
+    workDailyCap: 300,
     boss: 150,
     task: 25,
   },
