@@ -12,6 +12,7 @@ import { runAction, useToast } from './feedback';
 import { blockName, clockParts, clockSpoken, courseBySlug, hoursLabel, joinPt, lessonName, minutesLabel, timeHM } from './format';
 import { Sprite } from './pixel';
 import { Meter, RingMeter } from './viz';
+import { notifyPermission, playChime, systemNotify, unlockAlerts, type NotifyPermission } from './alerts';
 
 const MIN = 60_000;
 const PRESENCE_MS = season.timer.presenceMinutes * MIN;
@@ -47,19 +48,6 @@ export function timerNumbers(t: TimerView, serverNow: number) {
   const gapStart = Math.max(deadline, since);
   const pending = awaiting ? Math.min(Math.max(0, serverNow - gapStart), CAP_MS - credited) : 0;
   return { credited, awaiting, pending, deadline, capped: raw >= CAP_MS };
-}
-
-function systemNotify(title: string, body: string) {
-  try {
-    if (!('Notification' in window) || Notification.permission !== 'granted') return;
-    const n = new Notification(title, { body, tag: 'forja-timer' });
-    n.onclick = () => {
-      window.focus();
-      n.close();
-    };
-  } catch {
-    // notificações indisponíveis: a faixa na própria região basta
-  }
 }
 
 function statusSentence(state: GameState): string {
@@ -100,6 +88,32 @@ export function TodayPanel({ state, onOpenCardio, onStopSession }: Props) {
   const [breakUntil, setBreakUntil] = useState<number | null>(null);
   const notifiedFor = useRef<string | null>(null);
   const breakNotifiedFor = useRef<number | null>(null);
+  const [permission, setPermission] = useState<NotifyPermission>('default');
+
+  // Depois de recarregar a página, o som só volta a tocar com um clique: o primeiro clique em
+  // qualquer lugar já o prepara (sem pedir permissão de notificação).
+  useEffect(() => {
+    const unlock = () => unlockAlerts(false);
+    document.addEventListener('pointerdown', unlock, { once: true });
+    const t = window.setTimeout(() => setPermission(notifyPermission()), 0);
+    return () => {
+      document.removeEventListener('pointerdown', unlock);
+      window.clearTimeout(t);
+    };
+  }, []);
+
+  // A aba mostra a pausa no título, para dar para ver de outra aba.
+  useEffect(() => {
+    if (breakUntil === null) return;
+    const original = document.title.replace(/^(⏸|▶) [^·]+ · /, '');
+    const id = window.setInterval(() => {
+      document.title = Date.now() < breakUntil ? `⏸ Pausa · ${original}` : `▶ Volte ao foco · ${original}`;
+    }, 1000);
+    return () => {
+      window.clearInterval(id);
+      document.title = original;
+    };
+  }, [breakUntil]);
 
   const timer = state.timer;
   const next: NextLesson | null = state.nextLesson;
@@ -118,7 +132,10 @@ export function TodayPanel({ state, onOpenCardio, onStopSession }: Props) {
         return;
       }
       setBreakUntil(Date.now() + BREAK_MS);
-      systemNotify('Hora da pausa', `${season.timer.pomodoroFocus} min de foco feitos. Descanse ${season.timer.pomodoroBreak} min.`);
+      const body = `${season.timer.pomodoroFocus} min de foco feitos. Descanse ${season.timer.pomodoroBreak} min.`;
+      playChime('pause');
+      systemNotify('Hora da pausa', body, 'forja-pomodoro');
+      toast(`Hora da pausa: ${body}`);
     }
 
     const tick = () => {
@@ -129,7 +146,8 @@ export function TodayPanel({ state, onOpenCardio, onStopSession }: Props) {
         const n = timerNumbers(timer, server);
         if (n.awaiting && notifiedFor.current !== timer.lastConfirmAt) {
           notifiedFor.current = timer.lastConfirmAt;
-          systemNotify('Ainda no foco?', 'O Forja parou de contar até você responder.');
+          playChime('attention');
+          systemNotify('Ainda no foco?', 'O Forja parou de contar até você responder.', 'forja-presenca');
         }
         if (timer.pomodoro && timer.runningSince && !n.awaiting && !n.capped) {
           const block = Math.floor(n.credited / FOCUS_MS);
@@ -141,7 +159,9 @@ export function TodayPanel({ state, onOpenCardio, onStopSession }: Props) {
       }
       if (breakUntil !== null && client >= breakUntil && breakNotifiedFor.current !== breakUntil) {
         breakNotifiedFor.current = breakUntil;
-        systemNotify('A pausa acabou', 'Hora de voltar ao foco.');
+        playChime('focus');
+        systemNotify('A pausa acabou', 'Hora de voltar ao foco.', 'forja-pomodoro');
+        toast('A pausa acabou. Hora de voltar ao foco.');
       }
     };
     const first = window.setTimeout(tick, 0);
@@ -162,13 +182,7 @@ export function TodayPanel({ state, onOpenCardio, onStopSession }: Props) {
 
   /** Liga o timer num bloco; no estudo, abre a próxima aula. */
   function startBlock(block: string) {
-    try {
-      if ('Notification' in window && Notification.permission === 'default') {
-        void Notification.requestPermission().catch(() => {});
-      }
-    } catch {
-      // sem notificações
-    }
+    unlockAlerts();
     const isStudy = block === 'estudo';
     if (isStudy && next) window.open(next.url, '_blank', 'noopener');
     const slug = isStudy
@@ -372,10 +386,27 @@ export function TodayPanel({ state, onOpenCardio, onStopSession }: Props) {
               type="checkbox"
               className="h-4 w-4 accent-[var(--text)]"
               checked={pomodoro}
-              onChange={(e) => setPomodoro(e.target.checked)}
+              onChange={(e) => {
+                setPomodoro(e.target.checked);
+                if (e.target.checked) {
+                  unlockAlerts();
+                  playChime('focus');
+                  // a resposta ao pedido de permissão chega depois do clique
+                  window.setTimeout(() => setPermission(notifyPermission()), 4000);
+                }
+              }}
             />
             Pomodoro (25 min de foco e 5 de pausa)
           </label>
+          {pomodoro ? (
+            <p className="mt-1 text-small text-muted">
+              {permission === 'granted'
+                ? 'No fim do foco e da pausa, toca um sino e chega uma notificação.'
+                : permission === 'denied'
+                  ? 'Notificações bloqueadas neste navegador: o aviso será o sino e o título da aba. Para liberar, use o cadeado ao lado do endereço.'
+                  : 'No fim do foco e da pausa, toca um sino. Permita as notificações para receber o aviso também fora da aba.'}
+            </p>
+          ) : null}
         </div>
       </div>
 
