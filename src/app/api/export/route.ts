@@ -12,16 +12,17 @@ export async function GET() {
   }
 
   const store = getStore();
-  const [records, timer, tasks] = await Promise.all([
+  const [records, timer, tasks, courses] = await Promise.all([
     store.listRecords(season.id),
     store.getTimer(),
     store.getTasks(season.id),
+    store.getCourses(),
   ]);
   const instant = now();
   const day = gameDay(instant, season.timeZone, season.dayStartHour);
 
   const body = JSON.stringify(
-    { exportedAt: instant.toISOString(), seasonId: season.id, records, timer, tasks },
+    { exportedAt: instant.toISOString(), seasonId: season.id, records, timer, tasks, courses },
     null,
     2,
   );

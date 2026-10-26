@@ -1,4 +1,5 @@
 import { connection } from 'next/server';
+import { mergeCatalog } from '@/config/catalog';
 import { season } from '@/config/season';
 import { computeGameState } from '@/lib/game';
 import { getStore } from '@/lib/store';
@@ -12,12 +13,14 @@ import type { ForjaRecord, GameState } from '@/lib/types';
 export async function loadDashboard(): Promise<{ state: GameState; records: ForjaRecord[] }> {
   await connection();
   const store = getStore();
-  const [records, timer, tasks] = await Promise.all([
+  const [records, timer, tasks, custom] = await Promise.all([
     store.listRecords(season.id),
     store.getTimer(),
     store.getTasks(season.id),
+    store.getCourses(),
   ]);
-  return { state: computeGameState(records, timer, season, now(), { tasks }), records };
+  const catalog = mergeCatalog(custom);
+  return { state: computeGameState(records, timer, season, now(), { tasks, catalog }), records };
 }
 
 export async function loadGameState(): Promise<GameState> {

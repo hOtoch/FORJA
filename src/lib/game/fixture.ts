@@ -114,6 +114,7 @@ function buildDays(today: string): DayInfo[] {
       cardio,
       cardioMinutes: sum(seed.cardio.map(([, min]) => min)),
       blocks: [{ id: 'estudo', minutes: studyMinutes, goal: 60, met: dayMet }],
+      sourceMinutes: { estudo: studyMinutes },
       workMinutes: studyMinutes,
       goalMinutes: 60,
       counts: {},
@@ -191,7 +192,13 @@ function buildCourses(): CourseProgress[] {
   return season1.courses.queue.map((slug) => {
     const course = courseCatalog.courses.find((c) => c.slug === slug)!;
     const modules = course.modules.map((m) => {
-      const lessons = m.lessons.map(([id, title, minutes]) => ({ id, title, minutes, done: done.has(id) }));
+      const lessons = m.lessons.map(([id, title, minutes]) => ({
+        id,
+        title,
+        minutes,
+        done: done.has(id),
+        url: season1.courses.lessonUrl(slug, id),
+      }));
       const doneCount = lessons.filter((l) => l.done).length;
       return {
         name: m.name,
@@ -212,6 +219,10 @@ function buildCourses(): CourseProgress[] {
       modules,
       completed: modules.every((m) => m.completed),
       projectedEnd: COURSE_ENDS[slug] ?? null,
+      nextLesson: null,
+      platform: null,
+      url: null,
+      custom: false,
     };
   });
 }
