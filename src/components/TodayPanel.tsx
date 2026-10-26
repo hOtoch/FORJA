@@ -7,9 +7,22 @@ import { useEffect, useRef, useState, useTransition } from 'react';
 import { addGym, confirmPresence, pauseTimer, resumeTimer, startTimer } from '@/app/actions';
 import { season } from '@/config/season';
 import { gameDay, longDate } from '@/lib/time';
-import type { ActionResult, GameState, NextLesson, TimerView } from '@/lib/types';
+import { timeSources } from '@/lib/game/days';
+import type { ActionResult, ForjaRecord, GameState, TimerView } from '@/lib/types';
 import { runAction, useToast } from './feedback';
-import { blockName, clockParts, clockSpoken, courseBySlug, hoursLabel, joinPt, lessonName, minutesLabel, timeHM } from './format';
+import {
+  blockName,
+  blockOfSource,
+  blockProgressLabel,
+  clockParts,
+  clockSpoken,
+  courseBySlug,
+  hoursLabel,
+  joinPt,
+  lessonName,
+  minutesLabel,
+  timeHM,
+} from './format';
 import { Sprite } from './pixel';
 import { Meter, RingMeter } from './viz';
 import { notifyPermission, playChime, systemNotify, unlockAlerts, type NotifyPermission } from './alerts';
@@ -30,8 +43,30 @@ export interface StopInfo {
 
 interface Props {
   state: GameState;
+  /** Para somar quanto cada curso teve hoje. */
+  records?: ForjaRecord[];
   onOpenCardio: (day: string) => void;
   onStopSession: (info: StopInfo) => void;
+}
+
+const COURSE_KEY = 'forja:curso';
+/** No seletor do Estudar, as outras atividades (projeto/SaaS) aparecem como "src:<id>". */
+const SOURCE_PREFIX = 'src:';
+
+function readStoredCourse(): string | null {
+  try {
+    return window.localStorage.getItem(COURSE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function storeCourse(slug: string) {
+  try {
+    window.localStorage.setItem(COURSE_KEY, slug);
+  } catch {
+    // sem armazenamento: só não lembra o curso escolhido
+  }
 }
 
 /** Tempo creditado, presença e teto, como em data-model.md ("Timer em andamento"). */
@@ -63,6 +98,13 @@ function statusSentence(state: GameState): string {
   if (state.yesterdayMissedUnprotected) return 'Ontem ficou sem a meta. Se hoje também ficar, a sequência quebra.';
   const open = d.blocks.filter((b) => !b.met);
   const left = open.reduce((s, b) => s + b.goal - b.minutes, 0);
+  const pomodoroBlocks = open.length > 0 && open.every((b) => season.blocks.find((x) => x.id === b.id)?.pomodoros);
+  if (pomodoroBlocks) {
+    const n = Math.ceil(left / season.timer.pomodoroFocus);
+    return d.workMinutes === 0
+      ? `Nada registrado hoje ainda. São ${n} pomodoros de ${season.timer.pomodoroFocus} min pela frente.`
+      : `${n === 1 ? 'Falta 1 pomodoro' : `Faltam ${n} pomodoros`} hoje (${hoursLabel(left)}). Divida entre os cursos e o projeto.`;
+  }
   if (d.workMinutes === 0) return `Nada registrado hoje ainda. São ${hoursLabel(d.goalMinutes)} de foco pela frente.`;
   return `Faltam ${hoursLabel(left)} hoje: ${joinPt(open.map((b) => blockName(b.id)))}.`;
 }
@@ -80,10 +122,42 @@ function ClockDigits({ text }: { text: string }) {
   );
 }
 
-export function TodayPanel({ state, onOpenCardio, onStopSession }: Props) {
+export function TodayPanel({ state, records, onOpenCardio, onStopSession }: Props) {
   const toast = useToast();
   const [pending, startTransition] = useTransition();
-  const [pomodoro, setPomodoro] = useState(false);
+  // o estudo já começa como pomodoro (40/10 na temporada 2)
+  const [pomodoro, setPomodoro] = useState(true);
+  const openCourses = state.courses.filter((c) => !c.completed);
+  const lastStudied = [...(records ?? [])].reverse().find((r) => r.kind === 'study')?.data;
+  const [courseSlug, setCourseSlug] = useState<string>(() => {
+    const fromRecords = lastStudied && 'courseSlug' in lastStudied ? lastStudied.courseSlug : null;
+    return fromRecords ?? state.currentCourseSlug ?? openCourses[0]?.slug ?? '';
+  });
+  // o curso escolhido da última vez (neste navegador) ganha do último registrado
+  useEffect(() => {
+    const stored = readStoredCourse();
+    const known =
+      state.courses.some((c) => c.slug === stored && !c.completed) ||
+      timeSources(season).some((src) => `${SOURCE_PREFIX}${src.id}` === stored);
+    if (stored && stored !== courseSlug && known) {
+      const t = window.setTimeout(() => setCourseSlug(stored), 0);
+      return () => window.clearTimeout(t);
+    }
+    // só na montagem
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // atividades além dos cursos (projeto/SaaS) entram no mesmo seletor do Estudar
+  const otherSources = timeSources(season).filter((src) => src.id !== 'estudo');
+  const selectedSource = courseSlug.startsWith(SOURCE_PREFIX)
+    ? (otherSources.find((src) => `${SOURCE_PREFIX}${src.id}` === courseSlug) ?? null)
+    : null;
+  const selectedCourse = selectedSource ? undefined : (state.courses.find((c) => c.slug === courseSlug) ?? openCourses[0]);
+  const studyToday = new Map<string, number>();
+  for (const r of records ?? []) {
+    if (r.kind === 'study' && r.day === state.today) {
+      studyToday.set(r.data.courseSlug, (studyToday.get(r.data.courseSlug) ?? 0) + r.data.minutes);
+    }
+  }
   const [clock, setClock] = useState<{ server: number; client: number } | null>(null);
   const [breakUntil, setBreakUntil] = useState<number | null>(null);
   const notifiedFor = useRef<string | null>(null);
@@ -116,7 +190,6 @@ export function TodayPanel({ state, onOpenCardio, onStopSession }: Props) {
   }, [breakUntil]);
 
   const timer = state.timer;
-  const next: NextLesson | null = state.nextLesson;
 
   // Contagem local a partir do estado recebido: creditado + tempo desde que o estado chegou.
   useEffect(() => {
@@ -180,18 +253,19 @@ export function TodayPanel({ state, onOpenCardio, onStopSession }: Props) {
     });
   }
 
-  /** Liga o timer num bloco; no estudo, abre a próxima aula. */
+  /** Liga o timer numa atividade; no estudo, no curso escolhido, e abre a próxima aula dele. */
   function startBlock(block: string) {
     unlockAlerts();
     const isStudy = block === 'estudo';
-    if (isStudy && next) window.open(next.url, '_blank', 'noopener');
-    const slug = isStudy
-      ? (next?.courseSlug ?? state.currentCourseSlug ?? season.courses.queue[season.courses.queue.length - 1])
-      : '';
+    const course = isStudy ? selectedCourse : undefined;
+    const lesson = course?.nextLesson ?? null;
+    if (isStudy && lesson) window.open(lesson.url, '_blank', 'noopener');
+    const slug = isStudy ? (course?.slug ?? state.currentCourseSlug ?? season.courses.queue[0]) : '';
+    if (isStudy && slug) storeCourse(slug);
     startTransition(async () => {
       const r = await runAction(() => startTimer(slug, pomodoro, block), 'A sessão');
       if (!r.ok) toast(r.error, { tone: 'error' });
-      else if (isStudy && !next) toast('Timer ligado. A fila de cursos acabou, então não há próxima aula para abrir.');
+      else if (isStudy && !lesson) toast('Timer ligado. Este curso não tem próxima aula para abrir.');
     });
   }
 
@@ -216,8 +290,9 @@ export function TodayPanel({ state, onOpenCardio, onStopSession }: Props) {
     const block = timer.block ?? 'estudo';
     const isStudy = block === 'estudo';
     const course = isStudy ? courseBySlug(state, timer.courseSlug) : undefined;
-    const lesson = isStudy && next && next.courseSlug === timer.courseSlug ? next : null;
-    const blockToday = todayBlocks.find((b) => b.id === block);
+    const lesson = isStudy ? (course?.nextLesson ?? null) : null;
+    const goalBlock = blockOfSource(block);
+    const blockToday = todayBlocks.find((b) => b.id === goalBlock?.id);
     const blockGoal = blockToday?.goal ?? 0;
     const sameDay = gameDay(timer.startedAt, season.timeZone, season.dayStartHour) === state.today;
     const sessionMin = Math.floor(n.credited / MIN);
@@ -236,7 +311,7 @@ export function TodayPanel({ state, onOpenCardio, onStopSession }: Props) {
             max={ringMax}
             size={156}
             stroke={14}
-            label={`${blockName(block)}: ${withSession} de ${blockGoal} minutos hoje, contando esta sessão`}
+            label={`${goalBlock?.name ?? blockName(block)}: ${withSession} de ${blockGoal} minutos hoje, contando esta sessão`}
           >
             <p
               role="timer"
@@ -246,7 +321,7 @@ export function TodayPanel({ state, onOpenCardio, onStopSession }: Props) {
               <ClockDigits text={clockParts(n.credited)} />
             </p>
             <span className="text-small text-muted num">
-              {paused ? 'pausado' : blockGoal > 0 ? `${withSession} de ${blockGoal} min` : `${withSession} min hoje`}
+              {paused ? 'pausado' : blockProgressLabel(goalBlock, withSession, blockGoal)}
             </span>
           </RingMeter>
           <div className="min-w-0 flex-1">
@@ -372,8 +447,21 @@ export function TodayPanel({ state, onOpenCardio, onStopSession }: Props) {
           stroke={14}
           label={`${todayMinutes} de ${todayGoal} minutos de foco hoje`}
         >
-          <span className="figure text-[2.25rem] leading-10">{hoursLabel(todayMinutes)}</span>
-          <span className="text-small text-muted num">{todayGoal > 0 ? `de ${hoursLabel(todayGoal)}` : 'sem meta hoje'}</span>
+          {season.blocks.length === 1 && season.blocks[0].pomodoros ? (
+            <>
+              <span className="figure text-[2.25rem] leading-10 num">
+                {Math.floor(todayMinutes / season.timer.pomodoroFocus)}
+              </span>
+              <span className="text-small text-muted num">
+                {todayGoal > 0 ? `de ${Math.round(todayGoal / season.timer.pomodoroFocus)} pomodoros` : 'sem meta hoje'}
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="figure text-[2.25rem] leading-10">{hoursLabel(todayMinutes)}</span>
+              <span className="text-small text-muted num">{todayGoal > 0 ? `de ${hoursLabel(todayGoal)}` : 'sem meta hoje'}</span>
+            </>
+          )}
           {state.todayInfo?.dayMet && todayGoal > 0 ? (
             <span className="mt-0.5 text-micro font-bold text-ink">metas cumpridas</span>
           ) : null}
@@ -396,34 +484,37 @@ export function TodayPanel({ state, onOpenCardio, onStopSession }: Props) {
                 }
               }}
             />
-            Pomodoro (25 min de foco e 5 de pausa)
+            Pomodoro ({season.timer.pomodoroFocus} min de foco e {season.timer.pomodoroBreak} de pausa)
           </label>
           {pomodoro ? (
             <p className="mt-1 text-small text-muted">
               {permission === 'granted'
-                ? 'No fim do foco e da pausa, toca um sino e chega uma notificação.'
+                ? 'No fim do foco e da pausa, toca um alarme de 3 segundos e chega uma notificação.'
                 : permission === 'denied'
-                  ? 'Notificações bloqueadas neste navegador: o aviso será o sino e o título da aba. Para liberar, use o cadeado ao lado do endereço.'
-                  : 'No fim do foco e da pausa, toca um sino. Permita as notificações para receber o aviso também fora da aba.'}
+                  ? 'Notificações bloqueadas neste navegador: o aviso será o alarme e o título da aba. Para liberar, use o cadeado ao lado do endereço.'
+                  : 'No fim do foco e da pausa, toca um alarme de 3 segundos. Permita as notificações para receber o aviso também fora da aba.'}
             </p>
           ) : null}
         </div>
       </div>
 
-      <ul className="mt-5 space-y-2" aria-label="Blocos de hoje">
+      <ul className="mt-5 space-y-2" aria-label="Metas de hoje">
         {season.blocks.map((cfg) => {
           const b = todayBlocks.find((x) => x.id === cfg.id);
           const minutes = b?.minutes ?? 0;
           const goal = b?.goal ?? 0;
           const done = goal > 0 && minutes >= goal;
+          const parts = (cfg.includes ?? [])
+            .map((id) => [blockName(id), state.todayInfo?.sourceMinutes[id] ?? 0] as const)
+            .filter(([, m]) => m > 0);
           return (
             <li key={cfg.id} className="tile flex-wrap">
-              <Sprite name={cfg.icon} base={12} scale={2} style={{ opacity: done || goal === 0 ? 1 : 0.7 }} />
+              <Sprite name={cfg.icon} base={12} scale={2} />
               <div className="min-w-[10rem] flex-1">
                 <p className="flex items-baseline justify-between gap-2 text-body">
                   <span className="font-bold">{cfg.name}</span>
                   <span className="text-small text-muted num">
-                    {goal > 0 ? `${hoursLabel(minutes)} de ${hoursLabel(goal)}` : minutes > 0 ? hoursLabel(minutes) : 'livre hoje'}
+                    {goal > 0 || minutes > 0 ? blockProgressLabel(cfg, minutes, goal) : 'livre hoje'}
                     {done ? ' ✓' : ''}
                   </span>
                 </p>
@@ -432,32 +523,78 @@ export function TodayPanel({ state, onOpenCardio, onStopSession }: Props) {
                     <Meter value={Math.min(minutes, goal)} max={goal} size="sm" label={`${cfg.name}: ${minutes} de ${goal} min`} />
                   </div>
                 ) : null}
-                {cfg.id === 'estudo' ? (
-                  <p className="mt-1 truncate text-small text-muted">
-                    {next ? (
-                      <>
-                        Próxima aula: <span className="font-medium text-ink">{lessonName(next.title)}</span>{' '}
-                        <span className="num">({minutesLabel(next.minutes)})</span>
-                      </>
-                    ) : (
-                      'A fila de cursos acabou. O timer conta mesmo assim.'
-                    )}
+                {parts.length > 0 ? (
+                  <p className="mt-1 text-small text-muted num">
+                    Hoje: {parts.map(([name, m]) => `${hoursLabel(m)} de ${name.toLowerCase()}`).join(', ')}
                   </p>
                 ) : null}
               </div>
-              <button
-                type="button"
-                className={`btn ml-auto ${done ? 'btn-outline' : 'btn-primary'}`}
-                disabled={pending}
-                onClick={() => startBlock(cfg.id)}
-                aria-label={`Iniciar timer de ${cfg.name}`}
-              >
-                Iniciar
-              </button>
             </li>
           );
         })}
       </ul>
+
+      <div className="tile mt-3 flex-wrap">
+        <Sprite name="icone-livro" base={12} scale={2} />
+        <div className="min-w-[12rem] flex-1">
+          <label htmlFor="hoje-curso" className="text-body font-bold">
+            Estudar
+          </label>
+          <select
+            id="hoje-curso"
+            className="field mt-1 h-9 py-0"
+            value={selectedSource ? `${SOURCE_PREFIX}${selectedSource.id}` : (selectedCourse?.slug ?? '')}
+            onChange={(e) => {
+              setCourseSlug(e.target.value);
+              storeCourse(e.target.value);
+            }}
+          >
+            <optgroup label="Cursos">
+              {openCourses.map((c) => (
+                <option key={c.slug} value={c.slug}>
+                  {c.name}
+                  {c.platform ? ` (${c.platform})` : ''}
+                  {studyToday.get(c.slug) ? ` · ${hoursLabel(studyToday.get(c.slug)!)} hoje` : ''}
+                </option>
+              ))}
+            </optgroup>
+            {otherSources.length > 0 ? (
+              <optgroup label="Mão na massa">
+                {otherSources.map((src) => {
+                  const m = state.todayInfo?.sourceMinutes[src.id] ?? 0;
+                  return (
+                    <option key={src.id} value={`${SOURCE_PREFIX}${src.id}`}>
+                      {src.name}
+                      {m > 0 ? ` · ${hoursLabel(m)} hoje` : ''}
+                    </option>
+                  );
+                })}
+              </optgroup>
+            ) : null}
+          </select>
+          <p className="mt-1 truncate text-small text-muted">
+            {selectedSource ? (
+              'Implementar também é aprender: o tempo conta nos pomodoros do dia.'
+            ) : selectedCourse?.nextLesson ? (
+              <>
+                Próxima aula: <span className="font-medium text-ink">{lessonName(selectedCourse.nextLesson.title)}</span>{' '}
+                <span className="num">({minutesLabel(selectedCourse.nextLesson.minutes)})</span>
+              </>
+            ) : (
+              'Nenhum curso em aberto. O timer conta mesmo assim.'
+            )}
+          </p>
+        </div>
+        <button
+          type="button"
+          className="btn btn-primary ml-auto"
+          disabled={pending || (!selectedSource && !selectedCourse)}
+          onClick={() => startBlock(selectedSource ? selectedSource.id : 'estudo')}
+          aria-label={`Iniciar ${selectedSource ? selectedSource.name : `estudo de ${selectedCourse?.name ?? 'um curso'}`}`}
+        >
+          Iniciar
+        </button>
+      </div>
 
       <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="tile flex-wrap">

@@ -140,6 +140,16 @@ export interface CatalogCourse {
   slug: string;
   name: string;
   modules: CatalogModule[];
+  /** Onde o curso está (ex.: "Udemy"); ausente = Pythonando. */
+  platform?: string;
+  /** Página do curso. */
+  url?: string;
+  /** Link de uma aula, com `{id}` no lugar do id; ausente = `courses.lessonUrl` da temporada. */
+  lessonUrl?: string;
+  /** Link de um simulado (id negativo), com `{id}`. */
+  quizUrl?: string;
+  /** Adicionado por você no app (fica no banco, não no código). */
+  custom?: boolean;
 }
 
 export interface CourseCatalog {
@@ -189,6 +199,10 @@ export type AttrName = 'inteligencia' | 'influencia' | 'forca' | 'vigor';
  */
 export interface BlockConfig {
   id: string;
+  /** Atividades cujo tempo conta para o bloco (ex.: estudo e projeto no "Foco"); ausente = [id]. */
+  includes?: string[];
+  /** Mostra a meta em pomodoros (de `timer.pomodoroFocus` min) em vez de horas. */
+  pomodoros?: boolean;
   name: string;
   /** Como aparece no meio da frase ("Faltam 40 min de {phrase} hoje"). */
   phrase: string;
@@ -200,6 +214,14 @@ export interface BlockConfig {
 }
 
 /** Contador com meta semanal (vale para o chefe). */
+/** Atividade que dá para cronometrar ou registrar (estudo de curso, projeto...). */
+export interface TimeSource {
+  id: string;
+  name: string;
+  phrase: string;
+  icon: string;
+}
+
 export interface CounterConfig {
   id: string;
   /** "Candidaturas" */
@@ -225,6 +247,8 @@ export interface SeasonConfig {
   reserveBreaks: number;
   /** Blocos da rotina; o dia está cumprido quando todos batem a meta daquele dia da semana. */
   blocks: BlockConfig[];
+  /** Atividades com timer; ausente = os próprios blocos. */
+  sources?: TimeSource[];
   /** Contadores com meta semanal (a semana final, parcial, pede a parte proporcional). */
   counters: CounterConfig[];
   /** O que aparece no painel. */
@@ -273,6 +297,8 @@ export interface SeasonConfig {
     initialCompleted: Record<string, number[]>;
     missingDurationMin: number;
     defaultStudyPerVideo: number;
+    /** Minutos de estudo por dia usados no ritmo padrão da previsão; ausente = meta do bloco de estudo. */
+    studyMinutesPerDay?: number;
     paceWindowDays: number;
     minSessionsForPace: number;
     lessonUrl: (slug: string, id: number) => string;
@@ -307,6 +333,8 @@ export interface DayInfo {
   dayRedeemed: boolean;
   /** Minutos de cada bloco no dia e a meta daquele dia da semana. */
   blocks: DayBlock[];
+  /** Minutos de cada atividade no dia (estudo, projeto...). */
+  sourceMinutes: Record<string, number>;
   /** Soma dos minutos de todos os blocos. */
   workMinutes: number;
   /** Soma das metas dos blocos (0 em dia sem meta). */
@@ -410,6 +438,8 @@ export interface LessonProgress {
   title: string;
   minutes: number;
   done: boolean;
+  /** Link da aula na plataforma do curso. */
+  url: string;
 }
 
 export interface ModuleProgress {
@@ -430,6 +460,11 @@ export interface CourseProgress {
   modules: ModuleProgress[];
   completed: boolean;
   projectedEnd: string | null;
+  /** Próxima aula deste curso (dá para estudar mais de um ao mesmo tempo). */
+  nextLesson: NextLesson | null;
+  platform: string | null;
+  url: string | null;
+  custom: boolean;
 }
 
 export interface NextLesson {

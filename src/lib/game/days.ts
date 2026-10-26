@@ -3,7 +3,7 @@
 
 import { isSuperCardio } from '@/lib/cardio';
 import { daysBetween, seasonDays, seasonWeeks, weekdayOf } from '@/lib/time';
-import type { BlockConfig, DayInfo, ForjaRecord, Heat, SeasonConfig } from '@/lib/types';
+import type { BlockConfig, DayInfo, ForjaRecord, Heat, SeasonConfig, TimeSource } from '@/lib/types';
 
 export type Phase = 'before' | 'active' | 'after';
 
@@ -92,6 +92,16 @@ export function totalsByDay(records: ForjaRecord[], config: SeasonConfig): Map<s
     }
   }
   return map;
+}
+
+/** Atividades com timer: `config.sources`, ou os próprios blocos. */
+export function timeSources(config: SeasonConfig): TimeSource[] {
+  return config.sources ?? config.blocks.map((b) => ({ id: b.id, name: b.name, phrase: b.phrase, icon: b.icon }));
+}
+
+/** Minutos de um bloco num dia: a soma das atividades que ele inclui. */
+export function blockMinutesOf(block: BlockConfig, minutes: Record<string, number>): number {
+  return (block.includes ?? [block.id]).reduce((s, id) => s + (minutes[id] ?? 0), 0);
 }
 
 /** Meta de um bloco num dia da semana (1 = segunda … 7 = domingo). */
@@ -212,11 +222,14 @@ export function buildDays(records: ForjaRecord[], config: SeasonConfig, today: s
     const weekday = weekdayOf(date);
     const breakKind: DayInfo['breakKind'] = planned.has(date) ? 'planned' : reserve.has(date) ? 'reserve' : null;
     const blocks = config.blocks.map((b) => {
-      const minutes = t.blockMinutes[b.id] ?? 0;
+      const minutes = blockMinutesOf(b, t.blockMinutes);
       const goal = blockGoal(b, weekday);
       return { id: b.id, minutes, goal, met: minutes >= goal };
     });
-    const workMinutes = Object.values(t.blockMinutes).reduce((a, b) => a + b, 0);
+    // só o tempo das atividades que a temporada usa (registros de blocos antigos ficam de fora)
+    const counted = new Set(timeSources(config).map((src) => src.id));
+    for (const b of config.blocks) for (const id of b.includes ?? [b.id]) counted.add(id);
+    const workMinutes = Object.entries(t.blockMinutes).reduce((a, [id, m]) => (counted.has(id) ? a + m : a), 0);
     const goalMinutes = blocks.reduce((s, b) => s + b.goal, 0);
     const base = {
       date,
@@ -231,6 +244,7 @@ export function buildDays(records: ForjaRecord[], config: SeasonConfig, today: s
       shieldUsed: false,
       dayRedeemed: false,
       blocks,
+      sourceMinutes: { ...t.blockMinutes },
       workMinutes,
       goalMinutes,
       counts: { ...t.counts },

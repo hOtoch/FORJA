@@ -1,0 +1,1332 @@
+{
+ "_source": "Cursos de fora da Pythonando. Udemy: grade extraída da página do curso em 2026-10-26; ids negativos são simulados (quiz), com 90 min estimados.",
+ "courses": [
+  {
+   "slug": "aws-cloud-practitioner",
+   "name": "AWS Cloud Practitioner (CLF-C02)",
+   "platform": "Udemy",
+   "url": "https://www.udemy.com/course/certificacao-amazon-aws-cloud-practitioner-clf-c02/",
+   "lessonUrl": "https://www.udemy.com/course/certificacao-amazon-aws-cloud-practitioner-clf-c02/learn/lecture/{id}",
+   "quizUrl": "https://www.udemy.com/course/certificacao-amazon-aws-cloud-practitioner-clf-c02/learn/quiz/{id}",
+   "modules": [
+    {
+     "name": "Iniciando",
+     "min": 112,
+     "lessons": [
+      [
+       51831841,
+       "Boas Vindas ao Curso",
+       2
+      ],
+      [
+       51831847,
+       "O segredo desse curso",
+       10
+      ],
+      [
+       51831859,
+       "Sobre o Exame CLF-C02",
+       13
+      ],
+      [
+       51843141,
+       "O que é Cloud Computing e AWS",
+       35
+      ],
+      [
+       51843771,
+       "Criando a sua Conta na Amazon AWS",
+       21
+      ],
+      [
+       51845397,
+       "Tour pela nova plataforma da AWS, Zonas e Regiões",
+       31
+      ]
+     ]
+    },
+    {
+     "name": "AWS S3",
+     "min": 131,
+     "lessons": [
+      [
+       51861351,
+       "Criando Buckets e Acessando Classes no S3",
+       38
+      ],
+      [
+       51862517,
+       "Permissoes e Website Estatico no S3",
+       31
+      ],
+      [
+       51863471,
+       "Alterando o versionamento e ativando a replicação",
+       33
+      ],
+      [
+       51863767,
+       "Encriptação e Storage Gateway",
+       29
+      ]
+     ]
+    },
+    {
+     "name": "EC2",
+     "min": 134,
+     "lessons": [
+      [
+       51955331,
+       "Billing e criando um budget",
+       21
+      ],
+      [
+       51957139,
+       "Iniciando com o Amazon EC2",
+       16
+      ],
+      [
+       51957151,
+       "Tipos de Instancias e preços",
+       34
+      ],
+      [
+       51958445,
+       "Criação de uma Instância EC2 do Zero",
+       36
+      ],
+      [
+       52297505,
+       "Entendendo e configurando Security Groups",
+       27
+      ]
+     ]
+    },
+    {
+     "name": "Atualizando o Curso",
+     "min": 2,
+     "lessons": [
+      [
+       51847783,
+       "Avisando do novo conteúdo",
+       2
+      ]
+     ]
+    },
+    {
+     "name": "Introduction",
+     "min": 29,
+     "lessons": [
+      [
+       39012560,
+       "Boas Vindas",
+       1
+      ],
+      [
+       38718794,
+       "Sobre o novo exame CLF-C02",
+       9
+      ],
+      [
+       38735480,
+       "Sobre a sua conta na AWS",
+       5
+      ],
+      [
+       38718790,
+       "Criando sua conta gratuita",
+       8
+      ],
+      [
+       38718798,
+       "O Free Tier",
+       6
+      ]
+     ]
+    },
+    {
+     "name": "A Plataforma da AWS",
+     "min": 22,
+     "lessons": [
+      [
+       38796944,
+       "Navegando pela Plataforma",
+       7
+      ],
+      [
+       38796950,
+       "Criando um alerta de custo",
+       13
+      ],
+      [
+       38832494,
+       "As mudanças na console",
+       2
+      ]
+     ]
+    },
+    {
+     "name": "Conceitos",
+     "min": 29,
+     "lessons": [
+      [
+       38737138,
+       "O que é Cloud Computing?",
+       7
+      ],
+      [
+       38737344,
+       "7 Vantagens em Cloud Computing",
+       5
+      ],
+      [
+       38738132,
+       "Tipos de Cloud",
+       8
+      ],
+      [
+       38738226,
+       "Planos de Suporte da AWS",
+       9
+      ]
+     ]
+    },
+    {
+     "name": "O IAM",
+     "min": 82,
+     "lessons": [
+      [
+       38832592,
+       "O que é o IAM",
+       6
+      ],
+      [
+       38832878,
+       "Criando Grupos",
+       7
+      ],
+      [
+       38832966,
+       "Criando usuários",
+       8
+      ],
+      [
+       38833322,
+       "O IAM Identity Center",
+       5
+      ],
+      [
+       38849780,
+       "Sobre o MFA",
+       4
+      ],
+      [
+       38833326,
+       "Habilitando o MFA",
+       6
+      ],
+      [
+       38849980,
+       "Organizações AWS",
+       4
+      ],
+      [
+       38855118,
+       "Habilitando as Organizações",
+       2
+      ],
+      [
+       38850012,
+       "Habilitando o IAM Identity Center",
+       6
+      ],
+      [
+       38890768,
+       "Políticas de Senha",
+       6
+      ],
+      [
+       38891048,
+       "CloudShell e CLI",
+       12
+      ],
+      [
+       38891174,
+       "AWS Access Key e SDK",
+       8
+      ],
+      [
+       38891606,
+       "IAM Credential Report e Access Advisor",
+       5
+      ],
+      [
+       38910788,
+       "Resumo - IAM",
+       1
+      ],
+      [
+       38910790,
+       "Resumo - MFA",
+       1
+      ],
+      [
+       38910794,
+       "Resumo - Organizações",
+       1
+      ]
+     ]
+    },
+    {
+     "name": "A Estrutura da AWS",
+     "min": 22,
+     "lessons": [
+      [
+       38797804,
+       "Infraestrutura Global da AWS",
+       12
+      ],
+      [
+       38892000,
+       "AWS Share Responsibility Model",
+       7
+      ],
+      [
+       38910746,
+       "Resumo - Infra Global",
+       2
+      ],
+      [
+       38910750,
+       "Resumo - Share Model",
+       1
+      ]
+     ]
+    },
+    {
+     "name": "Elastic Compute Cloud",
+     "min": 65,
+     "lessons": [
+      [
+       38892796,
+       "Sobre EC2",
+       6
+      ],
+      [
+       38892800,
+       "Tipos de EC2",
+       7
+      ],
+      [
+       38893490,
+       "Modelos de Preços",
+       10
+      ],
+      [
+       38892804,
+       "Valores do EC2",
+       8
+      ],
+      [
+       38897488,
+       "Iniciando uma Instancia EC2",
+       10
+      ],
+      [
+       38897572,
+       "Testando o Webserver",
+       5
+      ],
+      [
+       38897576,
+       "Acessando via SSH",
+       3
+      ],
+      [
+       38897660,
+       "O Status da Instancia",
+       4
+      ],
+      [
+       38897900,
+       "Alterando o Security Group",
+       7
+      ],
+      [
+       38898296,
+       "Encerrando a instancia",
+       2
+      ],
+      [
+       38910714,
+       "Resumo - EC2",
+       1
+      ],
+      [
+       38910732,
+       "Resumo - Tipos de EC2",
+       1
+      ],
+      [
+       38910740,
+       "Resumo - Security Groups",
+       1
+      ]
+     ]
+    },
+    {
+     "name": "Armazenamento EC2",
+     "min": 58,
+     "lessons": [
+      [
+       38908898,
+       "Sobre o EBS",
+       6
+      ],
+      [
+       38909134,
+       "Valores e tipos de EBS",
+       10
+      ],
+      [
+       38909472,
+       "Criando discos EBS",
+       10
+      ],
+      [
+       38909568,
+       "Criando um Snapshot",
+       5
+      ],
+      [
+       38909768,
+       "Criando uma Imagem AMI customizada",
+       11
+      ],
+      [
+       38909896,
+       "Sobre o EFS",
+       5
+      ],
+      [
+       38910160,
+       "Sobre o FSx",
+       7
+      ],
+      [
+       38910854,
+       "Resumo - EBS",
+       1
+      ],
+      [
+       38910858,
+       "Resumo - EFS",
+       1
+      ],
+      [
+       38910862,
+       "Resumo - FSx",
+       2
+      ]
+     ]
+    },
+    {
+     "name": "Escalabilidade EC2",
+     "min": 53,
+     "lessons": [
+      [
+       38924836,
+       "Escalabilidade, Elasticidade e Disponibilidade",
+       8
+      ],
+      [
+       38910592,
+       "Sobre AutoScaling",
+       6
+      ],
+      [
+       38910590,
+       "Sobre ELB e ALB",
+       7
+      ],
+      [
+       38910594,
+       "Criando um Modelo de Execução",
+       7
+      ],
+      [
+       38925496,
+       "Criando um AutoScaling Group e ALB",
+       9
+      ],
+      [
+       38910596,
+       "Testando o ALB e AutoScaling",
+       10
+      ],
+      [
+       38925654,
+       "Removendo os recursos",
+       4
+      ],
+      [
+       38911094,
+       "Resumo - AutoScaling",
+       1
+      ],
+      [
+       38911096,
+       "Resumo - ELB",
+       1
+      ]
+     ]
+    },
+    {
+     "name": "Armazenamento S3",
+     "min": 82,
+     "lessons": [
+      [
+       38910602,
+       "Sobre o S3",
+       8
+      ],
+      [
+       38910610,
+       "Criando uma Bucket",
+       7
+      ],
+      [
+       38910604,
+       "Classes do S3",
+       11
+      ],
+      [
+       38926462,
+       "Valores do S3",
+       6
+      ],
+      [
+       38910612,
+       "Hospedando um site em S3",
+       7
+      ],
+      [
+       38910622,
+       "Habilitando Versionamento",
+       10
+      ],
+      [
+       38910688,
+       "Replicação de Buckets",
+       13
+      ],
+      [
+       38910632,
+       "Sobre Criptografia S3",
+       5
+      ],
+      [
+       38910636,
+       "Sobre Storage Gateway",
+       4
+      ],
+      [
+       38910640,
+       "A família Snow da AWS",
+       11
+      ]
+     ]
+    },
+    {
+     "name": "Bancos de Dados",
+     "min": 45,
+     "lessons": [
+      [
+       38942410,
+       "Sobre DataBases",
+       6
+      ],
+      [
+       38942684,
+       "Sobre o RDS",
+       5
+      ],
+      [
+       38942686,
+       "Criando um Banco de Dados Aurora",
+       13
+      ],
+      [
+       38943276,
+       "Sobre o Elasticache",
+       6
+      ],
+      [
+       38943394,
+       "Criando uma tabela no DynamoDB",
+       8
+      ],
+      [
+       39040152,
+       "Amazon Neptune",
+       4
+      ],
+      [
+       39061054,
+       "AWS Glue",
+       3
+      ]
+     ]
+    },
+    {
+     "name": "Rede",
+     "min": 70,
+     "lessons": [
+      [
+       38947902,
+       "Sobre VPC",
+       4
+      ],
+      [
+       38947908,
+       "Criando uma VPC",
+       12
+      ],
+      [
+       38947920,
+       "Iniciando uma Instância com Elastic IP",
+       11
+      ],
+      [
+       38947932,
+       "Sobre ACL",
+       6
+      ],
+      [
+       38947948,
+       "VPC Peering",
+       6
+      ],
+      [
+       38948044,
+       "VPC Endpoints",
+       6
+      ],
+      [
+       38947964,
+       "VPC Flow Logs",
+       5
+      ],
+      [
+       38947992,
+       "Client e Site to Site VPN",
+       5
+      ],
+      [
+       38948008,
+       "AWS PrivateLink",
+       5
+      ],
+      [
+       38948022,
+       "AWS Direct Connect",
+       6
+      ],
+      [
+       38948030,
+       "AWS Transit Gateway",
+       4
+      ]
+     ]
+    },
+    {
+     "name": "Content Delivery",
+     "min": 24,
+     "lessons": [
+      [
+       39126362,
+       "Sobre Route53",
+       6
+      ],
+      [
+       39125502,
+       "Route53 Policies",
+       7
+      ],
+      [
+       39126366,
+       "Configurando Route53",
+       8
+      ],
+      [
+       39040276,
+       "Sobre AWS CloudFront",
+       1
+      ],
+      [
+       39040278,
+       "S3 Transfer Acceleration",
+       1
+      ],
+      [
+       39040286,
+       "AWS Global Accelerator",
+       1
+      ]
+     ]
+    },
+    {
+     "name": "Containers",
+     "min": 11,
+     "lessons": [
+      [
+       42406218,
+       "O que é Docker",
+       3
+      ],
+      [
+       42406224,
+       "Amazon Elastic Container Registry (Amazon ECS)",
+       7
+      ],
+      [
+       39040246,
+       "Amazon Elastic Kubernetes Service (Amazon EKS)",
+       1
+      ]
+     ]
+    },
+    {
+     "name": "Integrações Cloud",
+     "min": 12,
+     "lessons": [
+      [
+       39040304,
+       "AWS Kinesis",
+       4
+      ],
+      [
+       39040298,
+       "AWS SQS",
+       5
+      ],
+      [
+       39040300,
+       "AWS SNS",
+       3
+      ]
+     ]
+    },
+    {
+     "name": "Computação e Serverless",
+     "min": 8,
+     "lessons": [
+      [
+       42406176,
+       "AWS Batch",
+       5
+      ],
+      [
+       39040200,
+       "AWS LightSail",
+       1
+      ],
+      [
+       39040206,
+       "AWS Lambda",
+       1
+      ],
+      [
+       39040216,
+       "AWS Fargate",
+       1
+      ]
+     ]
+    },
+    {
+     "name": "Billing e Support",
+     "min": 13,
+     "lessons": [
+      [
+       42406136,
+       "AWS Control Tower",
+       4
+      ],
+      [
+       42406162,
+       "AWS Resource Access Manager (AWS RAM)",
+       5
+      ],
+      [
+       39040316,
+       "AWS Service Catalog",
+       1
+      ],
+      [
+       42406140,
+       "AWS Trusted Advisor",
+       3
+      ]
+     ]
+    },
+    {
+     "name": "Machine Learning e AI",
+     "min": 32,
+     "lessons": [
+      [
+       39010034,
+       "Amazon Transcribe",
+       7
+      ],
+      [
+       39010038,
+       "Amazon Rekognition",
+       6
+      ],
+      [
+       39010044,
+       "Amazon Translate",
+       4
+      ],
+      [
+       39010050,
+       "Amazon Polly",
+       4
+      ],
+      [
+       39009702,
+       "Amazon Comprehend",
+       3
+      ],
+      [
+       39009756,
+       "Amazon Lex",
+       2
+      ],
+      [
+       39009764,
+       "Amazon Kendra",
+       2
+      ],
+      [
+       39010092,
+       "Amazon Textract",
+       2
+      ],
+      [
+       39010084,
+       "Amazon SageMaker",
+       2
+      ]
+     ]
+    },
+    {
+     "name": "Well-Architected Framework e EcoSystem",
+     "min": 32,
+     "lessons": [
+      [
+       42406072,
+       "Os 6 pilares do AWS Well-Architected Framework",
+       2
+      ],
+      [
+       42406086,
+       "Pilar 1 - Excelencia Operacional",
+       2
+      ],
+      [
+       42406092,
+       "Pilar 2 - Segurança",
+       3
+      ],
+      [
+       42406098,
+       "Pilar 3 - Confiabilidade",
+       2
+      ],
+      [
+       42406114,
+       "Pilar 4 - Eficiência de Desempenho",
+       2
+      ],
+      [
+       42406118,
+       "Pilar 5 - Otimização de custos",
+       2
+      ],
+      [
+       42406120,
+       "Pilar 6 - Sustentabilidade",
+       2
+      ],
+      [
+       39040026,
+       "AWS Cloud Adoption Framework (CAF).",
+       3
+      ],
+      [
+       39040028,
+       "AWS EcoSystem",
+       8
+      ],
+      [
+       39040038,
+       "AWS IQ",
+       4
+      ],
+      [
+       39040042,
+       "AWS Serviços Gerenciados",
+       2
+      ]
+     ]
+    },
+    {
+     "name": "Outros Serviços",
+     "min": 30,
+     "lessons": [
+      [
+       38960902,
+       "Amazon Cognito",
+       3
+      ],
+      [
+       38960916,
+       "Amazon Security Token Service",
+       3
+      ],
+      [
+       39006488,
+       "AWS Device Farm",
+       2
+      ],
+      [
+       39006494,
+       "AWS AppSync",
+       2
+      ],
+      [
+       39006498,
+       "AWS Amplify",
+       3
+      ],
+      [
+       39006790,
+       "AWS IoT Core",
+       4
+      ],
+      [
+       39040076,
+       "AWS Step Functions",
+       4
+      ],
+      [
+       44570579,
+       "Amazon AppFlow",
+       5
+      ],
+      [
+       39040106,
+       "AWS Backup",
+       1
+      ],
+      [
+       39040114,
+       "AWS Disaster Recovery Strategy",
+       1
+      ],
+      [
+       39040130,
+       "AWS WorkSpaces",
+       1
+      ],
+      [
+       39040148,
+       "AWS AppStream 2.0",
+       1
+      ]
+     ]
+    },
+    {
+     "name": "Simulados do Exame",
+     "min": 180,
+     "lessons": [
+      [
+       -6243112,
+       "Simulado 01",
+       90
+      ],
+      [
+       -6243114,
+       "Simulado 02",
+       90
+      ]
+     ]
+    },
+    {
+     "name": "Finalizando",
+     "min": 5,
+     "lessons": [
+      [
+       39012038,
+       "Plano de Ação para ser aprovado no exame",
+       3
+      ],
+      [
+       39012040,
+       "Muito Obrigado",
+       2
+      ]
+     ]
+    },
+    {
+     "name": "CURSO EXTRA - Linux para Amazon AWS",
+     "min": 74,
+     "lessons": [
+      [
+       42441918,
+       "Boas vindas",
+       2
+      ],
+      [
+       42441920,
+       "O que sãos os Sistemas Operacionais",
+       8
+      ],
+      [
+       42441922,
+       "Uma conta na AWS",
+       4
+      ],
+      [
+       42441924,
+       "Criando uma Instância Linux Ubuntu",
+       8
+      ],
+      [
+       42441928,
+       "Entendendo o prompt",
+       8
+      ],
+      [
+       42441932,
+       "Comandos básicos de Data",
+       4
+      ],
+      [
+       42441934,
+       "O modo Admin do Linux",
+       4
+      ],
+      [
+       42441938,
+       "Atualizando o Linux",
+       4
+      ],
+      [
+       42441940,
+       "Instalando o AWS CLI",
+       5
+      ],
+      [
+       42441942,
+       "Configurando a AWS CLI",
+       11
+      ],
+      [
+       42441944,
+       "Criando buckets no S3",
+       6
+      ],
+      [
+       42441946,
+       "Criando instancias EC2",
+       8
+      ],
+      [
+       42441948,
+       "Finalizando",
+       2
+      ]
+     ]
+    },
+    {
+     "name": "O Seu CV",
+     "min": 23,
+     "lessons": [
+      [
+       39012556,
+       "Seu próximo passo!",
+       1
+      ],
+      [
+       38831634,
+       "O Seu CV é um documento oficial",
+       2
+      ],
+      [
+       38831638,
+       "O tamanho do seu CV",
+       3
+      ],
+      [
+       38831644,
+       "Foto no CV",
+       6
+      ],
+      [
+       38831646,
+       "A ordem das suas experiências profissionais",
+       3
+      ],
+      [
+       38831650,
+       "CV especifico para a vaga",
+       3
+      ],
+      [
+       38831652,
+       "Falhas no seu CV",
+       3
+      ],
+      [
+       38831656,
+       "Finalizando",
+       2
+      ]
+     ]
+    },
+    {
+     "name": "O seu LinkedIn",
+     "min": 8,
+     "lessons": [
+      [
+       38831662,
+       "O LinkedIn",
+       1
+      ],
+      [
+       38831668,
+       "Dicas para a sua conta no LinkedIn",
+       6
+      ],
+      [
+       38831670,
+       "Finalizando",
+       1
+      ]
+     ]
+    },
+    {
+     "name": "As Vagas de Emprego Cloud",
+     "min": 23,
+     "lessons": [
+      [
+       38831810,
+       "Quando iniciar?",
+       2
+      ],
+      [
+       38831814,
+       "Procurando vagas no LinkedIn",
+       8
+      ],
+      [
+       38831818,
+       "Procurando vagas na Catho",
+       7
+      ],
+      [
+       38831820,
+       "Devo aplicar para quantas vagas?",
+       3
+      ],
+      [
+       38831824,
+       "Finalizando",
+       3
+      ]
+     ]
+    },
+    {
+     "name": "Entrevistas",
+     "min": 32,
+     "lessons": [
+      [
+       38832394,
+       "Preparação é tudo",
+       4
+      ],
+      [
+       38832398,
+       "A primeira impressão é a que fica",
+       6
+      ],
+      [
+       38832402,
+       "Linguagem Corporal",
+       3
+      ],
+      [
+       38832408,
+       "Faça perguntas abertas no início",
+       4
+      ],
+      [
+       38832410,
+       "Estude as perguntas mais comuns",
+       7
+      ],
+      [
+       38832414,
+       "Foque em resolver o “problema” do recrutador",
+       3
+      ],
+      [
+       38832416,
+       "Atente à comunicação, treine antes se for preciso",
+       4
+      ],
+      [
+       38832418,
+       "Finalizando",
+       1
+      ]
+     ]
+    },
+    {
+     "name": "CURSO EXTRA",
+     "min": 91,
+     "lessons": [
+      [
+       39044070,
+       "Desafios em Python",
+       2
+      ],
+      [
+       39044100,
+       "Escolhendo a sua IDE",
+       9
+      ],
+      [
+       39044120,
+       "Desafio 01",
+       2
+      ],
+      [
+       39044190,
+       "Solução 01",
+       3
+      ],
+      [
+       39044126,
+       "Desafio 02",
+       3
+      ],
+      [
+       39044184,
+       "Solução 02",
+       6
+      ],
+      [
+       39044128,
+       "Desafio 03",
+       2
+      ],
+      [
+       39044178,
+       "Solução 03",
+       6
+      ],
+      [
+       39044130,
+       "Desafio 04",
+       2
+      ],
+      [
+       39044176,
+       "Solução 04",
+       10
+      ],
+      [
+       39044132,
+       "Desafio 05",
+       2
+      ],
+      [
+       39044174,
+       "Solução 05",
+       8
+      ],
+      [
+       39044134,
+       "Desafio 06",
+       1
+      ],
+      [
+       39044172,
+       "Solução 06",
+       4
+      ],
+      [
+       39044136,
+       "Desafio 07",
+       2
+      ],
+      [
+       39044170,
+       "Solução 07",
+       6
+      ],
+      [
+       39044138,
+       "Desafio 08",
+       1
+      ],
+      [
+       39044168,
+       "Solução 08",
+       10
+      ],
+      [
+       39044142,
+       "Desafio 09",
+       1
+      ],
+      [
+       39044164,
+       "Solução 09",
+       3
+      ],
+      [
+       39044144,
+       "Desafio 10",
+       2
+      ],
+      [
+       39044160,
+       "Solução 10",
+       5
+      ],
+      [
+       39044148,
+       "Finalizando",
+       1
+      ]
+     ]
+    },
+    {
+     "name": "BONUS",
+     "min": 2,
+     "lessons": [
+      [
+       39044406,
+       "BONUS",
+       2
+      ]
+     ]
+    }
+   ]
+  }
+ ]
+}

@@ -2,7 +2,7 @@
 
 import type { AttrName, ForjaRecord, GameState, SeasonConfig, Task, WeekInfo } from '@/lib/types';
 import type { CourseEvent } from './courses';
-import { totalsByDay, type DayTotals } from './days';
+import { blockMinutesOf, totalsByDay, type DayTotals } from './days';
 
 export type AttrXp = Record<AttrName, number>;
 
@@ -30,7 +30,7 @@ export function activityXp(t: DayTotals, config: SeasonConfig): AttrXp {
   const out = zero();
   let room = x.workDailyCap;
   for (const b of config.blocks) {
-    const xp = Math.min((t.blockMinutes[b.id] ?? 0) * x.perWorkMinute, room);
+    const xp = Math.min(blockMinutesOf(b, t.blockMinutes) * x.perWorkMinute, room);
     room -= xp;
     out[b.attr] += xp;
   }

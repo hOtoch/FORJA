@@ -3,7 +3,7 @@
 import { season } from '@/config/season';
 import { formatBRL } from '@/lib/cardio';
 import { addDays, shortDate } from '@/lib/time';
-import type { CourseProgress, DayInfo, GameState, Heat, LessonProgress } from '@/lib/types';
+import type { BlockConfig, CourseProgress, DayInfo, GameState, Heat, LessonProgress } from '@/lib/types';
 
 const intFmt = new Intl.NumberFormat('pt-BR');
 const hmFmt = new Intl.DateTimeFormat('pt-BR', {
@@ -111,7 +111,22 @@ function activities(day: DayInfo): string[] {
 
 /** Nome do bloco da rotina ("Prospecção"). */
 export function blockName(id: string): string {
-  return season.blocks.find((b) => b.id === id)?.name ?? id;
+  return (season.sources ?? []).find((s) => s.id === id)?.name ?? season.blocks.find((b) => b.id === id)?.name ?? id;
+}
+
+/** Bloco com meta em que a atividade conta (o "Foco" inclui estudo e projeto). */
+export function blockOfSource(source: string): BlockConfig | undefined {
+  return season.blocks.find((b) => (b.includes ?? [b.id]).includes(source));
+}
+
+/** "3 de 6 pomodoros" (blocos em pomodoros) ou "2h de 4h". */
+export function blockProgressLabel(block: BlockConfig | undefined, minutes: number, goal: number): string {
+  if (block?.pomodoros) {
+    const focus = season.timer.pomodoroFocus;
+    const done = Math.floor(minutes / focus);
+    return goal > 0 ? `${done} de ${Math.round(goal / focus)} pomodoros` : `${done} ${done === 1 ? 'pomodoro' : 'pomodoros'}`;
+  }
+  return goal > 0 ? `${hoursLabel(minutes)} de ${hoursLabel(goal)}` : hoursLabel(minutes);
 }
 
 /** "1 candidatura", "3 candidaturas" */

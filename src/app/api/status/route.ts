@@ -2,6 +2,7 @@
 // Autenticação: Authorization: Bearer <FORJA_STATUS_TOKEN> (não usa o cookie de sessão).
 // Contrato: specs/001-forja-temporada-1/contracts/http-api.md
 
+import { mergeCatalog } from '@/config/catalog';
 import { season } from '@/config/season';
 import { safeEqual } from '@/lib/auth';
 import { computeGameState } from '@/lib/game';
@@ -21,12 +22,13 @@ export async function GET(request: Request) {
   if (!expected || !match || !(await safeEqual(match[1], expected))) return unauthorized();
 
   const store = getStore();
-  const [records, timer, tasks] = await Promise.all([
+  const [records, timer, tasks, custom] = await Promise.all([
     store.listRecords(season.id),
     store.getTimer(),
     store.getTasks(season.id),
+    store.getCourses(),
   ]);
-  const state = computeGameState(records, timer, season, now(), { tasks });
+  const state = computeGameState(records, timer, season, now(), { tasks, catalog: mergeCatalog(custom) });
 
   const studyMinutes =
     state.todayInfo?.studyMinutes ??

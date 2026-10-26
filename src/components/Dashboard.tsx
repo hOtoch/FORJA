@@ -52,7 +52,9 @@ function DashboardBody({ state, records }: { state: GameState; records?: ForjaRe
   const selectedDay = selectedDate ? (state.days.find((d) => d.date === selectedDate) ?? null) : null;
   const close = () => setDialog(null);
   // o registro manual abre no primeiro bloco que ainda falta hoje
-  const openBlock = state.todayInfo?.blocks.find((b) => b.goal > 0 && !b.met)?.id ?? 'estudo';
+  const sources = (season.sources ?? season.blocks).map((s) => s.id);
+  const firstOpen = state.todayInfo?.blocks.find((b) => b.goal > 0 && !b.met)?.id;
+  const openBlock = firstOpen && sources.includes(firstOpen) ? firstOpen : 'estudo';
   const fund = season.features.fund;
 
   return (
@@ -68,6 +70,7 @@ function DashboardBody({ state, records }: { state: GameState; records?: ForjaRe
         <div className="lg:col-span-7">
           <TodayPanel
             state={state}
+            records={records}
             onOpenCardio={(day) => setDialog({ kind: 'cardio', day })}
             onStopSession={(info) => setDialog({ kind: 'stop', info })}
           />

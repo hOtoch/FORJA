@@ -39,29 +39,39 @@ export function notifyPermission(): NotifyPermission {
   }
 }
 
+/** Duração do alarme, em segundos. */
+const ALARM_SECONDS = 3;
+
 /**
- * Toca um sino curto: dois tons descendo para a pausa, dois subindo para voltar ao foco,
- * e um tom só para avisos (presença).
+ * Toca um alarme repetitivo de 3 segundos, como um despertador: bipes curtos em pares, com um
+ * respiro entre os pares. Na pausa, o par desce (agudo, grave); na volta ao foco, sobe; no aviso
+ * de presença, os dois bipes têm o mesmo tom.
  */
 export function playChime(kind: 'pause' | 'focus' | 'attention'): void {
   try {
     if (!audio) return;
     if (audio.state === 'suspended') void audio.resume();
-    const notes = kind === 'pause' ? [880, 660, 440] : kind === 'focus' ? [440, 660, 880] : [660, 660];
+    const pair = kind === 'pause' ? [988, 740] : kind === 'focus' ? [740, 988] : [880, 880];
+    const beep = 0.12; // duração de cada bipe
+    const gap = 0.06; // entre os bipes do par
+    const cycle = 0.5; // um par a cada meio segundo
     const start = audio.currentTime + 0.02;
-    notes.forEach((freq, i) => {
-      const t = start + i * 0.28;
-      const osc = audio!.createOscillator();
-      const gain = audio!.createGain();
-      osc.type = 'sine';
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.exponentialRampToValueAtTime(0.35, t + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
-      osc.connect(gain).connect(audio!.destination);
-      osc.start(t);
-      osc.stop(t + 0.65);
-    });
+    for (let c = 0; c * cycle < ALARM_SECONDS - 0.01; c++) {
+      pair.forEach((freq, i) => {
+        const t = start + c * cycle + i * (beep + gap);
+        const osc = audio!.createOscillator();
+        const gain = audio!.createGain();
+        osc.type = 'square';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.0001, t);
+        gain.gain.exponentialRampToValueAtTime(0.12, t + 0.01);
+        gain.gain.setValueAtTime(0.12, t + beep - 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + beep);
+        osc.connect(gain).connect(audio!.destination);
+        osc.start(t);
+        osc.stop(t + beep + 0.02);
+      });
+    }
   } catch {
     // sem som
   }

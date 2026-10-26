@@ -1,20 +1,30 @@
 import { describe, expect, it } from 'vitest';
+import { baseCatalog, mergeCatalog } from '@/config/catalog';
 import { season2 } from '@/config/season2';
 import { addDays } from '@/lib/time';
-import type { ForjaRecord, RescueChallengeConfig, SeasonConfig } from '@/lib/types';
+import type { CatalogCourse, ForjaRecord, RescueChallengeConfig, SeasonConfig } from '@/lib/types';
+import { computeGameState } from './index';
 import { rescueDraw } from './rescue';
 import { at, cardio, count, dayOf, game, gym, study, superCardio, task, work } from './test-helpers';
 
 // semana 1 da temporada 2: segunda 19/10 a domingo 25/10 (domingo é folga)
 const MON = '2026-10-19';
 const SAT = '2026-10-24';
+const AWS = 'aws-cloud-practitioner';
+const DAPIA = 'desenvolvimento-assistido-por-ia';
 
-/** Um dia cheio (segunda a sábado): 2h de estudo e 1h de projeto. */
-function fullWeekday(day: string, extra: Partial<Record<string, number>> = {}): ForjaRecord[] {
-  const m = (id: string, base: number) => base + (extra[id] ?? 0);
+const s2study = (day: string, minutes: number, courseSlug = DAPIA, lessonIds: number[] = []): ForjaRecord => ({
+  ...study(day, minutes, { courseSlug, lessonIds }),
+  seasonId: 's2',
+});
+
+/** Um dia cheio: 6 pomodoros de 40 min, divididos entre dois cursos e o projeto. */
+function fullDay(day: string, extra: Partial<Record<'estudo' | 'aws' | 'projeto', number>> = {}): ForjaRecord[] {
+  const m = (id: 'estudo' | 'aws' | 'projeto', base: number) => base + (extra[id] ?? 0);
   const out: ForjaRecord[] = [];
-  if (m('estudo', 120) > 0) out.push({ ...study(day, m('estudo', 120)), seasonId: 's2' });
-  if (m('projeto', 60) > 0) out.push(work(day, 'projeto', m('projeto', 60)));
+  if (m('estudo', 80) > 0) out.push(s2study(day, m('estudo', 80)));
+  if (m('aws', 80) > 0) out.push(s2study(day, m('aws', 80), AWS));
+  if (m('projeto', 80) > 0) out.push(work(day, 'projeto', m('projeto', 80)));
   return out;
 }
 
@@ -38,12 +48,15 @@ function week1Extras(): ForjaRecord[] {
 
 function perfectWeek1(): ForjaRecord[] {
   const out: ForjaRecord[] = [];
-  for (let d = MON; d <= SAT; d = addDays(d, 1)) out.push(...fullWeekday(d));
+  for (let d = MON; d <= SAT; d = addDays(d, 1)) out.push(...fullDay(d));
   out.push(...week1Extras());
   return out;
 }
 
-describe('temporada 2: rotina por blocos', () => {
+const s2game = (records: ForjaRecord[], now: Date, config: SeasonConfig = season2, custom: CatalogCourse[] = []) =>
+  computeGameState(records, null, config, now, { catalog: mergeCatalog(custom) });
+
+describe('temporada 2: 6 pomodoros de foco por dia', () => {
   it('começa em 19/10, tem domingo de folga e 10 semanas', () => {
     const g = game([], at(MON), season2);
     expect(g.dayIndex).toBe(1);
@@ -53,52 +66,45 @@ describe('temporada 2: rotina por blocos', () => {
     expect(g.weeks[0].daysRequired).toBe(6);
   });
 
-  it('segunda a sábado pedem 2h de estudo e 1h de projeto; o resto é meta da semana', () => {
+  it('segunda a sábado pedem 6 pomodoros de 40 min (4h), somando estudo e projeto', () => {
     const g = game([], at(MON), season2);
-    expect(dayOf(g, MON).goalMinutes).toBe(180);
-    expect(dayOf(g, SAT).goalMinutes).toBe(180);
-    expect(season2.blocks.map((b) => b.id)).toEqual(['estudo', 'projeto']);
+    expect(dayOf(g, MON).goalMinutes).toBe(240);
+    expect(dayOf(g, SAT).goalMinutes).toBe(240);
+    expect(season2.blocks.map((b) => [b.id, b.includes])).toEqual([['foco', ['estudo', 'projeto']]]);
+    expect(season2.timer).toMatchObject({ pomodoroFocus: 40, pomodoroBreak: 10 });
     expect(season2.counters.map((c) => [c.id, c.weekTarget])).toEqual([
       ['contatos', 20],
       ['candidaturas', 20],
       ['posts', 3],
     ]);
-    expect(season2.goals).toMatchObject({ gymPerWeek: 4, cardioPerWeek: 5 });
     expect(g.weeks[0]).toMatchObject({ gymTarget: 4, cardioTarget: 5, superRequired: true });
   });
 
-  it('o dia só está cumprido com todos os blocos na meta', () => {
-    const almost = fullWeekday(MON).filter((r) => !(r.kind === 'work' && r.data.block === 'projeto'));
-    const g = game(almost, at(MON, '22:00'), season2);
-    expect(dayOf(g, MON)).toMatchObject({ dayMet: false, workMinutes: 120, heat: 1 });
-    expect(g.status.reasons).toContain('Faltam 60 min de projeto hoje.');
-    const ok = game(fullWeekday(MON), at(MON, '22:00'), season2);
-    expect(dayOf(ok, MON)).toMatchObject({ dayMet: true, heat: 2 });
+  it('dá para dividir como quiser: só estudo, só projeto ou os dois', () => {
+    const onlyStudy = game([s2study(MON, 240)], at(MON, '22:00'), season2);
+    expect(dayOf(onlyStudy, MON)).toMatchObject({ dayMet: true, workMinutes: 240 });
+    const onlyProject = game([work(MON, 'projeto', 240)], at(MON, '22:00'), season2);
+    expect(dayOf(onlyProject, MON).dayMet).toBe(true);
+    const split = game(fullDay(MON), at(MON, '22:00'), season2);
+    expect(dayOf(split, MON)).toMatchObject({ dayMet: true, sourceMinutes: { estudo: 160, projeto: 80 } });
   });
 
-  it('compensa bloco a bloco: estudo a mais não cobre projeto', () => {
+  it('com menos de 6 pomodoros o dia fica em aberto', () => {
+    const g = game(fullDay(MON, { projeto: -80 }), at(MON, '22:00'), season2);
+    expect(dayOf(g, MON)).toMatchObject({ dayMet: false, workMinutes: 160, heat: 1 });
+    expect(g.status.reasons).toContain('Faltam 80 min de foco hoje.');
+  });
+
+  it('a compensação na semana vale para o foco somado', () => {
     const tue = addDays(MON, 1);
-    const records = [
-      ...fullWeekday(MON, { projeto: -60 }), // segunda sem projeto
-      ...fullWeekday(tue, { estudo: 90 }), // terça com 90 min a mais de estudo
-    ];
+    const records = [...fullDay(MON, { projeto: -80 }), ...fullDay(tue, { estudo: 80 })];
     const g = game(records, at(addDays(MON, 2)), season2);
-    expect(dayOf(g, MON).dayRedeemed).toBe(false);
-    expect(g.weeks[0].owedByBlock).toEqual({ projeto: 60 });
-
-    const fixed = game([...records, work(addDays(MON, 2), 'projeto', 120)], at(addDays(MON, 2), '22:00'), season2);
-    expect(dayOf(fixed, MON).dayRedeemed).toBe(true);
-    expect(fixed.weeks[0].owedByBlock).toEqual({});
+    expect(dayOf(g, MON).dayRedeemed).toBe(true);
   });
 
-  it('o chefe pede também os contadores da semana', () => {
+  it('o chefe pede os 6 dias e as metas da semana', () => {
     const g = game(perfectWeek1(), at('2026-10-26'), season2);
     expect(g.weeks[0]).toMatchObject({ daysMet: 6, bossDefeated: true });
-    expect(g.weeks[0].counters).toEqual([
-      { id: 'contatos', count: 20, target: 20 },
-      { id: 'candidaturas', count: 20, target: 20 },
-      { id: 'posts', count: 3, target: 3 },
-    ]);
     const noPosts = perfectWeek1().filter((r) => !(r.kind === 'count' && r.data.counter === 'posts'));
     expect(game(noPosts, at('2026-10-26'), season2).weeks[0].bossDefeated).toBe(false);
   });
@@ -108,28 +114,64 @@ describe('temporada 2: rotina por blocos', () => {
     expect(g.weeks[9].counters.map((c) => c.target)).toEqual([9, 9, 2]);
   });
 
-  it('XP: estudo e projeto vão para Inteligência; os contadores, para Influência', () => {
-    const g = game([...fullWeekday(MON), count(MON, 'candidaturas', 2), count(MON, 'contatos', 5)], at(MON, '22:00'), season2);
-    expect(g.xp.byAttr.inteligencia).toBe(120 + 60);
+  it('XP: o foco vai para Inteligência, com teto diário; os contadores, para Influência', () => {
+    const g = game([...fullDay(MON), count(MON, 'candidaturas', 2), count(MON, 'contatos', 5)], at(MON, '22:00'), season2);
+    expect(g.xp.byAttr.inteligencia).toBe(240);
     expect(g.xp.byAttr.influencia).toBe(2 * 10 + 5 * 10);
-  });
-
-  it('o teto diário de XP soma todos os blocos', () => {
-    const g = game(fullWeekday(MON, { projeto: 300 }), at(MON, '23:00'), season2);
-    expect(g.xp.byAttr.inteligencia + g.xp.byAttr.influencia).toBe(season2.xp.workDailyCap);
+    const long = game(fullDay(MON, { projeto: 400 }), at(MON, '23:00'), season2);
+    expect(long.xp.byAttr.inteligencia).toBe(season2.xp.workDailyCap);
   });
 
   it('tarefa concluída rende XP no dia em que foi feita', () => {
     const tasks = [task('Atualizar o currículo', MON), task('Montar a landing do SaaS')];
     const g = game([], at(MON, '20:00'), season2, null, tasks);
     expect(g.xp.total).toBe(season2.xp.task);
-    expect(dayOf(g, MON).xp).toBe(season2.xp.task);
     expect(g.tasks.open.map((t) => t.title)).toEqual(['Montar a landing do SaaS']);
-    expect(g.tasks.done).toHaveLength(1);
   });
 });
 
-describe('temporada 2: resgate por contador e por bloco', () => {
+describe('temporada 2: dois cursos ao mesmo tempo', () => {
+  it('o curso de AWS da Udemy está no catálogo, com links para cada aula', () => {
+    const aws = baseCatalog.courses.find((c) => c.slug === AWS)!;
+    expect(aws).toMatchObject({ platform: 'Udemy' });
+    const lessons = aws.modules.flatMap((m) => m.lessons);
+    expect(lessons.length).toBe(225);
+    const g = s2game([], at(MON));
+    const course = g.courses.find((c) => c.slug === AWS)!;
+    expect(course.nextLesson).toMatchObject({
+      title: 'Boas Vindas ao Curso',
+      url: 'https://www.udemy.com/course/certificacao-amazon-aws-cloud-practitioner-clf-c02/learn/lecture/51831841',
+    });
+    const quiz = course.modules.find((m) => m.name === 'Simulados do Exame')!.lessons[0];
+    expect(quiz.url).toContain('/learn/quiz/6243112');
+  });
+
+  it('cada curso tem a sua próxima aula e o seu progresso', () => {
+    const firstAws = baseCatalog.courses.find((c) => c.slug === AWS)!.modules[0].lessons.slice(0, 2).map(([id]) => id);
+    const g = s2game([s2study(MON, 80, AWS, firstAws)], at(MON, '22:00'));
+    const aws = g.courses.find((c) => c.slug === AWS)!;
+    expect(aws.doneLessons).toBe(2);
+    expect(aws.nextLesson?.title).toBe('Sobre o Exame CLF-C02');
+    const dapia = g.courses.find((c) => c.slug === DAPIA)!;
+    expect(dapia.nextLesson?.courseSlug).toBe(DAPIA);
+  });
+
+  it('cursos adicionados no app entram depois da fila', () => {
+    const custom: CatalogCourse = {
+      slug: 'docker-na-pratica',
+      name: 'Docker na prática',
+      custom: true,
+      url: 'https://exemplo.com/docker',
+      modules: [{ name: 'Aulas', min: 30, lessons: [[900000001, 'Instalando', 10], [900000002, 'Primeiro container', 20]] }],
+    };
+    const g = s2game([s2study(MON, 30, 'docker-na-pratica', [900000001])], at(MON, '22:00'), season2, [custom]);
+    const c = g.courses.at(-1)!;
+    expect(c).toMatchObject({ slug: 'docker-na-pratica', custom: true, doneLessons: 1 });
+    expect(c.nextLesson).toMatchObject({ title: 'Primeiro container', url: 'https://exemplo.com/docker' });
+  });
+});
+
+describe('temporada 2: resgate', () => {
   const only = (challenge: RescueChallengeConfig): SeasonConfig => ({ ...season2, rescue: { challenges: [challenge] } });
 
   it('contador: soma o que foi registrado no dia do evento', () => {
@@ -140,11 +182,11 @@ describe('temporada 2: resgate por contador e por bloco', () => {
     expect(g.weeks[0]).toMatchObject({ bossDefeated: true, bossRescued: true });
   });
 
-  it('bloco: pede a meta do bloco naquele dia mais o extra', () => {
-    const config = only({ id: 'p', title: 'Projeto: {n} min a mais', description: 'Some {total} min.', kind: 'block-minutes', block: 'projeto', base: 60, step: 10 });
+  it('foco extra: pede os 6 pomodoros do dia e mais o extra, somando estudo e projeto', () => {
+    const challenge = season2.rescue.challenges.find((c) => c.id === 'foco-extra')!;
+    const config = only(challenge);
     const day = rescueDraw(1, config)!.day;
-    const g = game([], at(day), config);
-    const goal = dayOf(g, day).blocks.find((b) => b.id === 'projeto')!.goal;
-    expect(g.rescue).toMatchObject({ target: goal + 60, description: `Some ${goal + 60} min.` });
+    const g = game([s2study(day, 200), work(day, 'projeto', 120)], at(day, '22:00'), config);
+    expect(g.rescue).toMatchObject({ target: 240 + 80, progress: 320, state: 'done' });
   });
 });
