@@ -1,5 +1,6 @@
 // Armazenamento do Forja: registros de fatos (`records`), o timer em andamento (`kv['timer']`) e as
-// tarefas avulsas da temporada (`kv['tasks:<temporada>']`).
+// tarefas avulsas da temporada (`kv['tasks:<temporada>']`) e os cursos adicionados no app
+// (`kv['courses:custom']`).
 // Dois adaptadores com a mesma interface (data-model.md, "Armazenamento"):
 // - Neon (Postgres) quando há DATABASE_URL; num banco novo, cria as tabelas sozinho no primeiro uso;
 // - arquivo JSON local (.data/forja.json) quando não há, só fora de produção.
@@ -7,7 +8,7 @@
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { neon, type NeonQueryFunction } from '@neondatabase/serverless';
-import type { ForjaRecord, Task, TimerState } from './types';
+import type { CatalogCourse, ForjaRecord, Task, TimerState } from './types';
 
 export interface Store {
   /** Registros da temporada, em ordem de dia e de criação. */
@@ -21,10 +22,14 @@ export interface Store {
   /** Tarefas avulsas da temporada (lista inteira; são poucas). */
   getTasks(seasonId: string): Promise<Task[]>;
   setTasks(seasonId: string, tasks: Task[]): Promise<void>;
+  /** Cursos adicionados pelo app (valem para todas as temporadas). */
+  getCourses(): Promise<CatalogCourse[]>;
+  setCourses(courses: CatalogCourse[]): Promise<void>;
 }
 
 const TIMER_KEY = 'timer';
 const tasksKey = (seasonId: string) => `tasks:${seasonId}`;
+const COURSES_KEY = 'courses:custom';
 
 function byDayThenCreated(a: ForjaRecord, b: ForjaRecord): number {
   if (a.day !== b.day) return a.day < b.day ? -1 : 1;
@@ -134,6 +139,10 @@ export function createNeonStore(databaseUrl: string, makeSql: (url: string) => S
       return (await getKv<Task[]>(tasksKey(seasonId))) ?? [];
     },
     setTasks: (seasonId, tasks) => setKv(tasksKey(seasonId), tasks),
+    async getCourses() {
+      return (await getKv<CatalogCourse[]>(COURSES_KEY)) ?? [];
+    },
+    setCourses: (courses) => setKv(COURSES_KEY, courses),
   };
 
   async function getKv<T>(key: string): Promise<T | null> {
@@ -263,6 +272,16 @@ export function createFileStore(filePath: string): Store {
     async setTasks(seasonId, tasks) {
       await update((data) => {
         data.kv[tasksKey(seasonId)] = tasks;
+      });
+    },
+    async getCourses() {
+      const data = await exclusive(read);
+      const courses = data.kv[COURSES_KEY];
+      return Array.isArray(courses) ? (courses as CatalogCourse[]) : [];
+    },
+    async setCourses(courses) {
+      await update((data) => {
+        data.kv[COURSES_KEY] = courses;
       });
     },
   };

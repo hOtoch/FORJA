@@ -6,6 +6,7 @@
 import { useState, useTransition } from 'react';
 import { addStudy, addWork } from '@/app/actions';
 import { season } from '@/config/season';
+import { timeSources } from '@/lib/game/days';
 import type { GameState } from '@/lib/types';
 import { runAction, useToast } from '../feedback';
 import { blockName, courseBySlug, lessonName, pendingLessons } from '../format';
@@ -83,7 +84,7 @@ export function ManualStudyDialog({
           Bloco
         </label>
         <select id="registro-bloco" className="field mt-1.5" value={block} onChange={(e) => setBlock(e.target.value)}>
-          {season.blocks.map((b) => (
+          {timeSources(season).map((b) => (
             <option key={b.id} value={b.id}>
               {b.name}
             </option>

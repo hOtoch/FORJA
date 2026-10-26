@@ -2,6 +2,7 @@
 
 import { addDays, daysBetween } from '@/lib/time';
 import type {
+  CatalogCourse,
   CourseCatalog,
   CourseProgress,
   ForjaRecord,
@@ -32,8 +33,24 @@ export function effectiveMinutes(raw: number, config: SeasonConfig): number {
  */
 export function defaultPace(config: SeasonConfig): number {
   const goals = config.blocks.find((b) => b.id === STUDY_BLOCK)?.minutes.filter((m) => m > 0) ?? [];
-  const daily = goals.length ? goals.reduce((a, b) => a + b, 0) / goals.length : 60;
+  const fromBlock = goals.length ? goals.reduce((a, b) => a + b, 0) / goals.length : 60;
+  const daily = config.courses.studyMinutesPerDay ?? fromBlock;
   return daily / config.courses.defaultStudyPerVideo;
+}
+
+/** Link de uma aula: o modelo do próprio curso (Udemy...) ou o da temporada (Pythonando). */
+export function lessonLink(course: CatalogCourse, id: number, config: SeasonConfig): string {
+  if (id < 0 && course.quizUrl) return course.quizUrl.replace('{id}', String(-id));
+  if (course.lessonUrl) return course.lessonUrl.replace('{id}', String(Math.abs(id)));
+  if (course.url) return course.url;
+  return config.courses.lessonUrl(course.slug, id);
+}
+
+/** A fila da temporada e, depois dela, os outros cursos do catálogo (os adicionados no app). */
+export function courseOrder(catalog: CourseCatalog, config: SeasonConfig): string[] {
+  const known = new Set(catalog.courses.map((c) => c.slug));
+  const queue = config.courses.queue.filter((s) => known.has(s));
+  return [...queue, ...catalog.courses.map((c) => c.slug).filter((s) => !queue.includes(s))];
 }
 
 const byChronology = (a: StudyRecord, b: StudyRecord) =>
@@ -167,7 +184,7 @@ export function computeCourses(
   let remainingAcc = 0;
   let queueProjectedEnd: string | null = null;
 
-  for (const slug of config.courses.queue) {
+  for (const slug of courseOrder(catalog, config)) {
     const course = courseBySlug.get(slug);
     if (!course) continue;
     const set = history.done.get(slug) ?? new Set<number>();
@@ -176,7 +193,13 @@ export function computeCourses(
     let totalMinutes = 0;
     let doneMinutes = 0;
     const modules = course.modules.map((m) => {
-      const lessons = m.lessons.map(([id, title, minutes]) => ({ id, title, minutes, done: set.has(id) }));
+      const lessons = m.lessons.map(([id, title, minutes]) => ({
+        id,
+        title,
+        minutes,
+        done: set.has(id),
+        url: lessonLink(course, id, config),
+      }));
       const doneCount = lessons.filter((l) => l.done).length;
       for (const l of lessons) {
         const eff = effectiveMinutes(l.minutes, config);
@@ -192,25 +215,21 @@ export function computeCourses(
     const completed = totalLessons > 0 && doneLessons === totalLessons;
 
     let projectedEnd: string | null = null;
+    let courseNext: NextLesson | null = null;
     if (!completed) {
       remainingAcc += totalMinutes - doneMinutes;
       projectedEnd = addDays(today, Math.ceil(remainingAcc / pace));
       queueProjectedEnd = projectedEnd;
+      for (const m of modules) {
+        const l = m.lessons.find((x) => !x.done);
+        if (l) {
+          courseNext = { courseSlug: slug, id: l.id, title: l.title, minutes: l.minutes, url: lessonLink(course, l.id, config) };
+          break;
+        }
+      }
       if (!currentCourseSlug) {
         currentCourseSlug = slug;
-        for (const m of modules) {
-          const l = m.lessons.find((x) => !x.done);
-          if (l) {
-            nextLesson = {
-              courseSlug: slug,
-              id: l.id,
-              title: l.title,
-              minutes: l.minutes,
-              url: config.courses.lessonUrl(slug, l.id),
-            };
-            break;
-          }
-        }
+        nextLesson = courseNext;
       }
     }
 
@@ -224,6 +243,10 @@ export function computeCourses(
       modules,
       completed,
       projectedEnd,
+      nextLesson: courseNext,
+      platform: course.platform ?? null,
+      url: course.url ?? null,
+      custom: course.custom === true,
     });
   }
 

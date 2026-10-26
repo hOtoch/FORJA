@@ -7,10 +7,13 @@
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { courseCatalog, season } from '@/config/season';
+import { mergeCatalog } from '@/config/catalog';
+import { season } from '@/config/season';
 import { requireSession, safeEqual, SESSION_COOKIE, SESSION_MAX_AGE, signSession } from '@/lib/auth';
 import { clientBonusCents, isSuperCardio, validateCardio } from '@/lib/cardio';
 import { computeGameState } from '@/lib/game';
+import { CUSTOM_ID_BASE, maxCustomLessonId, parseLessons, slugFor } from '@/lib/course-import';
+import { timeSources } from '@/lib/game/days';
 import { getStore, type Store } from '@/lib/store';
 import { SUMMARY_MAX, SUMMARY_MIN } from '@/lib/summary';
 import { addDays, gameDay, now } from '@/lib/time';
@@ -23,6 +26,7 @@ import {
 } from '@/lib/timer';
 import type {
   ActionResult,
+  CourseCatalog,
   BreakRecord,
   CardioModality,
   CardioRecord,
@@ -74,6 +78,11 @@ const MSG = {
   taskNotFound: 'Tarefa não encontrada.',
   summary: 'Escreva um resumo do que você aprendeu, com pelo menos 20 caracteres.',
   summaryMax: 'O resumo pode ter no máximo 2.000 caracteres.',
+  courseName: 'Dê um nome ao curso (até 120 caracteres).',
+  courseUrl: 'O link do curso precisa começar com http:// ou https://.',
+  courseLessons: 'Cole a lista de aulas: uma por linha (até 2.000 aulas).',
+  courseNotFound: 'Curso não encontrado entre os adicionados por você.',
+  courseInUse: 'Esse curso tem estudo registrado nesta temporada. Desfaça os registros antes de removê-lo.',
 } as const;
 
 const MAX_MINUTES = 600;
@@ -126,9 +135,14 @@ function isTodayOrYesterday(day: unknown, ctx: Ctx): day is string {
   return typeof day === 'string' && (day === ctx.today || day === ctx.yesterday);
 }
 
-function findCourse(slug: unknown): CatalogCourse | null {
+/** Catálogo completo: o do código e os cursos adicionados no app. */
+async function loadCatalog(ctx: Ctx): Promise<CourseCatalog> {
+  return mergeCatalog(await ctx.store.getCourses());
+}
+
+function findCourse(catalog: CourseCatalog, slug: unknown): CatalogCourse | null {
   if (typeof slug !== 'string') return null;
-  return courseCatalog.courses.find((c) => c.slug === slug) ?? null;
+  return catalog.courses.find((c) => c.slug === slug) ?? null;
 }
 
 /** Aulas únicas, todas do curso; null se alguma não pertencer a ele. */
@@ -165,15 +179,18 @@ function newId(): string {
 }
 
 async function loadState(ctx: Ctx) {
-  const [records, timer, tasks] = await Promise.all([
+  const [records, timer, tasks, catalog] = await Promise.all([
     ctx.store.listRecords(season.id),
     ctx.store.getTimer(),
     ctx.store.getTasks(season.id),
+    loadCatalog(ctx),
   ]);
-  return { records, state: computeGameState(records, timer, season, ctx.instant, { tasks }) };
+  return { records, state: computeGameState(records, timer, season, ctx.instant, { tasks, catalog }) };
 }
 
-const findBlock = (id: unknown) => (typeof id === 'string' ? (season.blocks.find((b) => b.id === id) ?? null) : null);
+/** Atividade com timer (estudo, projeto...). */
+const findBlock = (id: unknown) =>
+  typeof id === 'string' ? (timeSources(season).find((b) => b.id === id) ?? null) : null;
 const findCounter = (id: unknown) =>
   typeof id === 'string' ? (season.counters.find((c) => c.id === id) ?? null) : null;
 
@@ -219,7 +236,7 @@ export async function logout(): Promise<void> {
 export async function startTimer(courseSlug: string, pomodoro: boolean, block = 'estudo'): Promise<ActionResult> {
   return withSession(async (ctx) => {
     if (!findBlock(block)) return fail(MSG.block);
-    if (block === 'estudo' && !findCourse(courseSlug)) return fail(MSG.course);
+    if (block === 'estudo' && !findCourse(await loadCatalog(ctx), courseSlug)) return fail(MSG.course);
     if (await ctx.store.getTimer()) return fail(MSG.timerExists);
     await ctx.store.setTimer(timerStart(courseSlug, pomodoro === true, ctx.instant, block));
     return { ok: true };
@@ -265,7 +282,7 @@ export async function stopTimer(
   return withSession(async (ctx) => {
     const t = await ctx.store.getTimer();
     if (!t) return fail(MSG.noTimer);
-    const course = findCourse(t.courseSlug);
+    const course = findCourse(await loadCatalog(ctx), t.courseSlug);
     const lessons = course ? cleanLessonIds(course, lessonIds) : [];
     if (lessons === null) return fail(MSG.lessons);
 
@@ -303,7 +320,7 @@ export async function addStudy(input: {
     if (!isTodayOrYesterday(day, ctx)) return fail(MSG.dayRange);
     const minErr = minutesError(minutes, 1);
     if (minErr) return fail(minErr);
-    const course = findCourse(courseSlug);
+    const course = findCourse(await loadCatalog(ctx), courseSlug);
     if (!course) return fail(MSG.course);
     const lessons = cleanLessonIds(course, lessonIds);
     if (lessons === null) return fail(MSG.lessons);
@@ -514,6 +531,59 @@ export async function completeRescue(): Promise<ActionResult> {
       data: { weekIndex: rescue.weekIndex },
     };
     await ctx.store.addRecord(record);
+    return { ok: true };
+  });
+}
+
+// ---------- Cursos adicionados no app ----------
+
+const MAX_COURSE_NAME = 120;
+const MAX_COURSE_LESSONS = 2000;
+
+/** Adiciona um curso a partir da lista de aulas colada (veja src/lib/course-import.ts). */
+export async function addCourse(input: {
+  name: string;
+  url?: string;
+  platform?: string;
+  lessons: string;
+}): Promise<ActionResult<{ slug: string; lessons: number; minutes: number }>> {
+  return withSession(async (ctx) => {
+    const name = typeof input.name === 'string' ? input.name.trim().replace(/\s+/g, ' ') : '';
+    if (!name || name.length > MAX_COURSE_NAME) return fail(MSG.courseName);
+    const url = typeof input.url === 'string' ? input.url.trim() : '';
+    if (url && !/^https?:\/\/\S+$/i.test(url)) return fail(MSG.courseUrl);
+    const platform = typeof input.platform === 'string' ? input.platform.trim().slice(0, 40) : '';
+    if (typeof input.lessons !== 'string') return fail(MSG.courseLessons);
+
+    const custom = await ctx.store.getCourses();
+    let id = Math.max(maxCustomLessonId(custom), CUSTOM_ID_BASE);
+    const parsed = parseLessons(input.lessons.slice(0, 200_000), () => ++id);
+    if (parsed.lessons === 0 || parsed.lessons > MAX_COURSE_LESSONS) return fail(MSG.courseLessons);
+
+    const taken = new Set(mergeCatalog(custom).courses.map((c) => c.slug));
+    const course: CatalogCourse = {
+      slug: slugFor(name, taken),
+      name,
+      modules: parsed.modules,
+      custom: true,
+      ...(platform ? { platform } : {}),
+      ...(url ? { url } : {}),
+    };
+    await ctx.store.setCourses([...custom, course]);
+    return { ok: true, data: { slug: course.slug, lessons: parsed.lessons, minutes: parsed.minutes } };
+  });
+}
+
+/** Remove um curso adicionado no app, se não houver estudo dele registrado nesta temporada. */
+export async function deleteCourse(slug: string): Promise<ActionResult> {
+  return withSession(async (ctx) => {
+    const custom = await ctx.store.getCourses();
+    if (!custom.some((c) => c.slug === slug)) return fail(MSG.courseNotFound);
+    const records = await ctx.store.listRecords(season.id);
+    if (records.some((r) => r.kind === 'study' && r.data.courseSlug === slug)) return fail(MSG.courseInUse);
+    const timer = await ctx.store.getTimer();
+    if (timer?.courseSlug === slug) return fail(MSG.courseInUse);
+    await ctx.store.setCourses(custom.filter((c) => c.slug !== slug));
     return { ok: true };
   });
 }

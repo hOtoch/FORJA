@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Header } from '@/components/Header';
 import { ToastProvider } from '@/components/feedback';
 import { courseBySlug, lessonName, lessonTitleById, minutesLabel, projDate } from '@/components/format';
+import { AddCourseForm, DeleteCourseButton } from '@/components/AddCourseForm';
 import { MedalIcon } from '@/components/icons';
 import { season } from '@/config/season';
 import { loadDashboard } from '@/lib/load-state';
@@ -20,7 +21,7 @@ function summary(state: GameState): string {
 
 function CourseMap({ course, position, state }: { course: CourseProgress; position: number; state: GameState }) {
   const current = course.slug === state.currentCourseSlug;
-  const next = state.nextLesson;
+  const next = course.nextLesson;
   const leftMin = course.totalMinutes - course.doneMinutes;
   const currentModule = course.modules.findIndex((m) => !m.completed);
   const pct = course.totalMinutes > 0 ? (course.doneMinutes / course.totalMinutes) * 100 : 0;
@@ -28,10 +29,26 @@ function CourseMap({ course, position, state }: { course: CourseProgress; positi
 
   return (
     <section aria-labelledby={headingId} className="card">
-      <h2 id={headingId} className="flex items-center gap-2 font-gothic text-title font-bold">
-        {course.name}
-        {course.completed ? <MedalIcon size={22} label="Curso concluído" /> : null}
-      </h2>
+      <div className="flex items-start justify-between gap-3">
+        <h2 id={headingId} className="flex items-center gap-2 font-gothic text-title font-bold">
+          {course.name}
+          {course.completed ? <MedalIcon size={22} label="Curso concluído" /> : null}
+        </h2>
+        {course.custom ? <DeleteCourseButton slug={course.slug} name={course.name} /> : null}
+      </div>
+      {course.platform || course.url ? (
+        <p className="text-small text-muted">
+          {course.platform ?? 'Curso'}
+          {course.url ? (
+            <>
+              {' · '}
+              <a href={course.url} target="_blank" rel="noopener noreferrer" className="link">
+                abrir o curso
+              </a>
+            </>
+          ) : null}
+        </p>
+      ) : null}
       <p className="mt-1 text-body">
         {position}º da fila{current ? ', o curso atual' : ''}.{' '}
         <span className="num">
@@ -70,7 +87,7 @@ function CourseMap({ course, position, state }: { course: CourseProgress; positi
                           aria-hidden="true"
                         />
                         <a
-                          href={season.courses.lessonUrl(course.slug, l.id)}
+                          href={l.url}
                           target="_blank"
                           rel="noopener noreferrer"
                           className={`min-w-0 flex-1 rounded-[2px] hover:underline ${isNext ? 'font-bold' : ''} ${
@@ -142,17 +159,24 @@ export default async function CursosPage() {
     <div className="mx-auto w-full max-w-[1440px] px-4 pb-16 pt-3 md:px-8">
       <ToastProvider>
         <Header />
+        <main className="mt-8">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <h1 className="font-gothic text-[2.25rem] leading-10 font-extrabold">Mapa dos cursos</h1>
+              <p className="mt-2 max-w-[72ch] text-lead">{summary(state)}</p>
+            </div>
+          </div>
+          <div className="mt-5">
+            <AddCourseForm />
+          </div>
+          <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-3">
+            {state.courses.map((c, i) => (
+              <CourseMap key={c.slug} course={c} position={i + 1} state={state} />
+            ))}
+          </div>
+          <Journal state={state} records={records} />
+        </main>
       </ToastProvider>
-      <main className="mt-8">
-        <h1 className="font-gothic text-[2.25rem] leading-10 font-extrabold">Mapa dos cursos</h1>
-        <p className="mt-2 max-w-[72ch] text-lead">{summary(state)}</p>
-        <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-3">
-          {state.courses.map((c, i) => (
-            <CourseMap key={c.slug} course={c} position={i + 1} state={state} />
-          ))}
-        </div>
-        <Journal state={state} records={records} />
-      </main>
     </div>
   );
 }

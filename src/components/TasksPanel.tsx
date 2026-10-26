@@ -6,6 +6,7 @@
 import { useState, useTransition } from 'react';
 import { addTask, deleteTask, setTaskDone } from '@/app/actions';
 import { season } from '@/config/season';
+import { timeSources } from '@/lib/game/days';
 import { shortDate } from '@/lib/time';
 import type { ActionResult, GameState, Task } from '@/lib/types';
 import { runAction, useToast } from './feedback';
@@ -114,7 +115,7 @@ export function TasksPanel({ state }: { state: GameState }) {
         </label>
         <select id="tarefa-bloco" className="field w-auto" value={block} onChange={(e) => setBlock(e.target.value)}>
           <option value="">Sem bloco</option>
-          {season.blocks.map((b) => (
+          {timeSources(season).map((b) => (
             <option key={b.id} value={b.id}>
               {b.name}
             </option>

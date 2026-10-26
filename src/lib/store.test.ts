@@ -54,6 +54,14 @@ describe('store em arquivo', () => {
     expect(await createFileStore(file).getTasks('s2')).toEqual([task]);
   });
 
+  it('guarda os cursos adicionados no app', async () => {
+    const store = createFileStore(file);
+    expect(await store.getCourses()).toEqual([]);
+    const course = { slug: 'docker', name: 'Docker', custom: true, modules: [{ name: 'Aulas', min: 5, lessons: [[900000001, 'Instalando', 5]] as [number, string, number][] }] };
+    await store.setCourses([course]);
+    expect(await createFileStore(file).getCourses()).toEqual([course]);
+  });
+
   it('começa vazio sem criar arquivo', async () => {
     const store = createFileStore(file);
     expect(await store.listRecords('s1')).toEqual([]);
